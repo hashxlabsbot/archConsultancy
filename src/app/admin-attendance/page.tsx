@@ -1,0 +1,205 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import DashboardLayout from '@/components/layout/DashboardLayout';
+import { motion, AnimatePresence } from 'framer-motion';
+import { HiOutlineDocumentText, HiXMark } from 'react-icons/hi2';
+import { getInitials, formatDate, formatTime } from '@/lib/utils';
+
+export default function AdminAttendancePage() {
+    const [attendanceRecords, setAttendanceRecords] = useState<any[]>([]);
+    const [attendancePeriod, setAttendancePeriod] = useState<'daily' | 'monthly' | 'all' | 'custom'>('daily');
+    const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
+    const [loadingAttendance, setLoadingAttendance] = useState(true);
+
+    // Report Modal State
+    const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+    const [selectedReport, setSelectedReport] = useState<any>(null);
+
+    useEffect(() => {
+        fetchAdminAttendance();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [attendancePeriod, customDate]);
+
+    const fetchAdminAttendance = async () => {
+        setLoadingAttendance(true);
+        try {
+            const url = `/api/admin/attendance?period=${attendancePeriod}` + (attendancePeriod === 'custom' ? `&date=${customDate}` : '');
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                setAttendanceRecords(data.records);
+            }
+        } catch (err) { } finally { setLoadingAttendance(false); }
+    };
+
+    const openReportModal = (report: any) => {
+        setSelectedReport(report);
+        setIsReportModalOpen(true);
+    };
+
+    return (
+        <DashboardLayout>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-900">Attendance & Reports</h1>
+                    <p className="text-slate-500 mt-1">Review organization-wide check-ins, hours worked, and daily status reports</p>
+                </div>
+
+                <div className="glass-card overflow-hidden">
+                    <div className="p-5 border-b border-gray-200/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/50">
+                        <h2 className="text-lg font-semibold text-slate-900">Organization Attendance</h2>
+                        <div className="flex gap-4 items-center w-full sm:w-auto">
+                            {attendancePeriod === 'custom' && (
+                                <input
+                                    type="date"
+                                    value={customDate}
+                                    onChange={(e) => setCustomDate(e.target.value)}
+                                    className="input-field max-w-[150px] py-2 text-sm"
+                                />
+                            )}
+                            <select
+                                value={attendancePeriod}
+                                onChange={(e) => setAttendancePeriod(e.target.value as any)}
+                                className="input-field max-w-[200px] py-2 text-sm"
+                            >
+                                <option value="daily">Today</option>
+                                <option value="monthly">This Month</option>
+                                <option value="all">All Time</option>
+                                <option value="custom">Custom Date (Calendar)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto min-h-[400px]">
+                        {loadingAttendance ? (
+                            <div className="flex justify-center items-center h-64">
+                                <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        ) : (
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="bg-gray-50/80 border-b border-gray-200">
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Date</th>
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Employee</th>
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Check In</th>
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Check Out</th>
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Duration</th>
+                                        <th className="text-center text-sm text-slate-500 px-5 py-3 font-medium">Daily Report</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white">
+                                    {attendanceRecords.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="px-5 py-12 text-center text-slate-500 bg-slate-50/50">
+                                                No attendance records found for this period.
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        attendanceRecords.map((record) => (
+                                            <tr key={record.id} className="border-b border-gray-100 hover:bg-slate-50/50 transition-colors">
+                                                <td className="px-5 py-3 text-sm text-slate-900 font-medium">{formatDate(record.date)}</td>
+                                                <td className="px-5 py-3">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-600 font-bold border border-slate-200 shadow-sm">
+                                                            {getInitials(record.user?.name || '?')}
+                                                        </div>
+                                                        <span className="text-sm text-slate-700 font-medium">{record.user?.name || 'Unknown User'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-5 py-3 text-sm text-slate-600">{formatTime(record.checkIn)}</td>
+                                                <td className="px-5 py-3 text-sm text-slate-600">{record.checkOut ? formatTime(record.checkOut) : '—'}</td>
+                                                <td className="px-5 py-3 text-sm text-slate-600">{record.duration}</td>
+                                                <td className="px-5 py-3 text-center">
+                                                    {record.reports && record.reports.length > 0 ? (
+                                                        <button
+                                                            onClick={() => openReportModal(record.reports[0])}
+                                                            className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors text-xs font-semibold hover:shadow-sm"
+                                                        >
+                                                            <HiOutlineDocumentText className="w-4 h-4" />
+                                                            View Report
+                                                        </button>
+                                                    ) : (
+                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
+                                                            Pending
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
+                </div>
+            </motion.div>
+
+            {/* Read-Only Report View Modal */}
+            <AnimatePresence>
+                {isReportModalOpen && selectedReport && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-100">
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900">Daily Status Report</h3>
+                                    <p className="text-sm text-slate-500 mt-0.5">Submitted at {formatTime(selectedReport.submittedAt)}</p>
+                                </div>
+                                <button onClick={() => setIsReportModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-100 rounded-lg">
+                                    <HiXMark className="w-5 h-5" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+
+                                {/* Project Tag */}
+                                {selectedReport.project && (
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary-50 text-primary-700 text-xs font-semibold rounded-full border border-primary-100">
+                                        <HiOutlineDocumentText className="w-4 h-4" />
+                                        Project: {selectedReport.project.name}
+                                    </div>
+                                )}
+
+                                <div>
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Today's Tasks</h4>
+                                    <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap">
+                                        {selectedReport.tasks}
+                                    </div>
+                                </div>
+
+                                {selectedReport.blockers && (
+                                    <div>
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Blockers / Issues</h4>
+                                        <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50 text-sm text-slate-700 whitespace-pre-wrap">
+                                            {selectedReport.blockers}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {selectedReport.nextPlan && (
+                                    <div>
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Plan for Tomorrow</h4>
+                                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-700 whitespace-pre-wrap">
+                                            {selectedReport.nextPlan}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Image Attachment */}
+                                {selectedReport.imageUrl && (
+                                    <div>
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Attached Image</h4>
+                                        <div className="rounded-xl overflow-hidden border border-slate-200">
+                                            <img src={selectedReport.imageUrl} alt="Report Attachment" className="w-full h-auto object-cover max-h-[400px]" />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="p-4 border-t border-gray-100 bg-slate-50 flex justify-end">
+                                <button onClick={() => setIsReportModalOpen(false)} className="btn-secondary">Close</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+        </DashboardLayout>
+    );
+}

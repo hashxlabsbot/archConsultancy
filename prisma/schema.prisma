@@ -1,0 +1,188 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("EMPLOYEE") // ADMIN, MANAGER, EMPLOYEE
+  phone        String?
+  skills       String?
+  avatar       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  attendances    Attendance[]
+  reports        Report[]
+  leaves         Leave[]
+  ownedProjects  Project[]       @relation("ProjectOwner")
+  projectMembers ProjectMember[]
+  documents      Document[]
+  signedReports  Report[]        @relation("ReportSignOff")
+  approvedLeaves Leave[]         @relation("LeaveApprover")
+  notifications  Notification[]
+  siteVisits     SiteVisit[]
+  salarySlips    SalarySlip[]
+}
+
+model Attendance {
+  id               String    @id @default(cuid())
+  userId           String
+  user             User      @relation(fields: [userId], references: [id])
+  date             DateTime  @default(now())
+  checkIn          DateTime  @default(now())
+  checkOut         DateTime?
+  reportSubmitted  Boolean   @default(false)
+  checkoutAttempts Int       @default(0)
+  createdAt        DateTime  @default(now())
+
+  reports Report[]
+}
+
+model Report {
+  id             String    @id @default(cuid())
+  attendanceId   String
+  attendance     Attendance @relation(fields: [attendanceId], references: [id])
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  projectId      String?   // New: Optional linking to a Project
+  project        Project?  @relation(fields: [projectId], references: [id])
+  tasks          String
+  blockers       String?
+  nextPlan       String?
+  imageUrl       String?   // New: Optional image upload (base64 or path)
+  submittedAt    DateTime  @default(now())
+  managerComment String?
+  signedOffBy    String?
+  signedOffUser  User?     @relation("ReportSignOff", fields: [signedOffBy], references: [id])
+  createdAt      DateTime  @default(now())
+}
+
+model Leave {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  type       String   @default("FULL") // FULL, HALF, CUSTOM
+  startDate  DateTime
+  endDate    DateTime
+  reason     String
+  status     String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedBy String?
+  approver   User?    @relation("LeaveApprover", fields: [approvedBy], references: [id])
+  comment    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  client      String
+  startDate   DateTime
+  endDate     DateTime?
+  description String?
+  status       String   @default("ACTIVE") // ACTIVE, COMPLETED, ON_HOLD
+  location     String?
+  latitude     Float?
+  longitude    Float?
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+  ownerId      String
+  owner        User     @relation("ProjectOwner", fields: [ownerId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  members    ProjectMember[]
+  documents  Document[]
+  reports    Report[]
+  siteVisits SiteVisit[]
+  milestones Milestone[]
+}
+
+model ProjectMember {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  role      String  @default("MEMBER") // LEAD, MEMBER
+
+  @@unique([projectId, userId])
+}
+
+model Document {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  filename    String
+  storagePath String
+  version     Int      @default(1)
+  uploadedBy  String
+  uploader    User     @relation(fields: [uploadedBy], references: [id])
+  tags        String?  // JSON stringified array
+  mimeType    String?
+  size        Int?
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String   // Admin who receives it
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  link      String?  
+  createdAt DateTime @default(now())
+}
+
+model SiteVisit {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date        DateTime @default(now())
+  latitude    Float?
+  longitude   Float?
+  address     String?
+  notes       String
+  photoUrls   String?  // JSON stringified array of base64 strings
+  status      String   @default("PENDING") // PENDING, REVIEWED
+  createdAt   DateTime @default(now())
+}
+
+model Milestone {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      String   @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
+  sequence    Int      @default(0)
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SalarySlip {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monthYear   String   // e.g., 'March 2026'
+  basicPay    Float
+  allowances  Float    @default(0)
+  deductions  Float    @default(0)
+  netPay      Float
+  status      String   @default("PAID") // PENDING, PAID
+  remarks     String?
+  createdAt   DateTime @default(now())
+}

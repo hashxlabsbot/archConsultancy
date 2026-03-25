@@ -1,0 +1,81 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+
+// POST /api/leaves — Apply for leave
+export async function POST(req: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const userId = (session.user as any).id;
+        const { type, startDate, endDate, reason } = await req.json();
+
+        if (!startDate || !endDate || !reason) {
+            return NextResponse.json({ error: 'Start date, end date, and reason are required' }, { status: 400 });
+        }
+
+        const leave = await prisma.leave.create({
+            data: {
+                userId,
+                type: type || 'FULL',
+                startDate: new Date(startDate),
+                endDate: new Date(endDate),
+                reason,
+            },
+        });
+
+        return NextResponse.json({ leave }, { status: 201 });
+    } catch (error) {
+        console.error('Leave apply error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
+
+// GET /api/leaves — List leaves
+export async function GET(req: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const userId = (session.user as any).id;
+        const role = (session.user as any).role;
+        const { searchParams } = new URL(req.url);
+        const status = searchParams.get('status');
+
+        const where: any = {};
+        if (role === 'EMPLOYEE') where.userId = userId;
+        if (status) where.status = status;
+
+        const leaves = await prisma.leave.findMany({
+            where,
+            include: {
+                user: { select: { id: true, name: true, email: true, role: true } },
+                approver: { select: { id: true, name: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+        });
+
+        // Calculate balance (simple: 24 total per year - approved leaves)
+        const approvedCount = await prisma.leave.count({
+            where: {
+                userId,
+                status: 'APPROVED',
+                startDate: { gte: new Date(new Date().getFullYear(), 0, 1) },
+            },
+        });
+
+        return NextResponse.json({
+            leaves,
+            balance: { total: 24, used: approvedCount, remaining: 24 - approvedCount },
+        });
+    } catch (error) {
+        console.error('Leaves list error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}

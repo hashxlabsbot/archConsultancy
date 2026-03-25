@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    @apply bg-gray-50 text-slate-800 font-sans antialiased;
+    min-height: 100vh;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-100;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+}
+
+@layer components {
+
+  /* Light theme card effect */
+  .glass-card {
+    @apply bg-white shadow-sm border border-gray-100 rounded-2xl;
+  }
+
+  .glass-card-hover {
+    @apply bg-white shadow-sm border border-gray-100 rounded-2xl transition-all duration-300 hover:border-primary-500/30 hover:shadow-md hover:shadow-primary-500/5;
+  }
+
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-secondary-500;
+  }
+
+  /* Status dots */
+  .status-dot {
+    @apply w-2.5 h-2.5 rounded-full;
+  }
+
+  .status-dot-active {
+    @apply status-dot bg-success-500 shadow-sm shadow-success-500/50;
+  }
+
+  .status-dot-warning {
+    @apply status-dot bg-warning-500 shadow-sm shadow-warning-500/50;
+  }
+
+  .status-dot-danger {
+    @apply status-dot bg-danger-500 shadow-sm shadow-danger-500/50;
+  }
+
+  /* Button styles */
+  .btn-primary {
+    @apply px-6 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium transition-all duration-300 hover:from-primary-600 hover:to-primary-700 hover:shadow-md hover:shadow-primary-500/25 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-2.5 bg-white text-slate-700 border border-gray-200 rounded-xl font-medium transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply px-6 py-2.5 bg-gradient-to-r from-danger-500 to-danger-600 text-white rounded-xl font-medium transition-all duration-300 hover:from-danger-600 hover:to-danger-700 hover:shadow-md hover:shadow-danger-500/25 active:scale-[0.98] disabled:opacity-50;
+  }
+
+  .btn-success {
+    @apply px-6 py-2.5 bg-gradient-to-r from-success-500 to-success-600 text-white rounded-xl font-medium transition-all duration-300 hover:from-success-600 hover:to-success-700 hover:shadow-md hover:shadow-success-500/25 active:scale-[0.98] disabled:opacity-50;
+  }
+
+  /* Input styles */
+  .input-field {
+    @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/50 transition-all duration-300;
+  }
+
+  .input-label {
+    @apply block text-sm font-medium text-slate-700 mb-1.5;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border;
+  }
+
+  /* Sidebar item */
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 transition-all duration-200 hover:bg-gray-50 hover:text-slate-900 cursor-pointer;
+  }
+
+  .sidebar-item-active {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-50 text-primary-600 border-r-2 border-primary-500 font-medium cursor-pointer;
+  }
+}
+
+@layer utilities {
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 3s ease infinite;
+  }
+
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+}
