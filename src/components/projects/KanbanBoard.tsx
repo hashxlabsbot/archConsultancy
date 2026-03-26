@@ -13,12 +13,12 @@ const COLUMNS = [
     { id: 'DONE', label: 'Done', color: 'border-success-200 bg-success-50' },
 ];
 
-export default function KanbanBoard({ projectId }: { projectId: string }) {
+export default function KanbanBoard({ projectId, members }: { projectId: string; members: any[] }) {
     const [milestones, setMilestones] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [draggedItem, setDraggedItem] = useState<any>(null);
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newMilestone, setNewMilestone] = useState({ title: '', description: '', dueDate: '' });
+    const [newMilestone, setNewMilestone] = useState({ title: '', description: '', dueDate: '', assigneeId: '', reviewerId: '' });
 
     useEffect(() => { fetchMilestones(); }, [projectId]);
 
@@ -80,7 +80,7 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
             if (res.ok) {
                 toast.success('Milestone added');
                 setShowAddModal(false);
-                setNewMilestone({ title: '', description: '', dueDate: '' });
+                setNewMilestone({ title: '', description: '', dueDate: '', assigneeId: '', reviewerId: '' });
                 fetchMilestones();
             } else { toast.error('Failed to add'); }
         } catch (err) { toast.error('Error adding milestone'); }
@@ -134,9 +134,35 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
                                 <h5 className="font-bold text-slate-900 text-sm pr-6 leading-tight mb-1">{m.title}</h5>
                                 {m.description && <p className="text-xs text-slate-500 mb-2 line-clamp-2">{m.description}</p>}
                                 {m.dueDate && (
-                                    <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-slate-400 mt-2 bg-slate-50 w-fit px-2 py-1 rounded-md">
+                                    <div className="flex items-center gap-1 text-[10px] uppercase font-bold text-slate-400 mt-2 bg-slate-50 w-fit px-2 py-1 rounded-md mb-2">
                                         <HiOutlineCalendar className="w-3 h-3" />
                                         {formatDate(m.dueDate)}
+                                    </div>
+                                )}
+                                {(m.assignee || m.reviewer) && (
+                                    <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1.5">
+                                        {m.assignee && (
+                                            <div className="flex items-center justify-between text-[10px] text-slate-500">
+                                                <span className="font-medium">Assignee:</span>
+                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md">
+                                                    <div className="w-3.5 h-3.5 rounded-full bg-primary-100 flex items-center justify-center text-[7px] font-bold text-primary-600">
+                                                        {m.assignee.name.charAt(0)}
+                                                    </div>
+                                                    <span className="text-slate-700 font-medium truncate max-w-[60px]">{m.assignee.name}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {m.reviewer && (
+                                            <div className="flex items-center justify-between text-[10px] text-slate-500">
+                                                <span className="font-medium">Reviewer:</span>
+                                                <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-0.5 rounded-md">
+                                                    <div className="w-3.5 h-3.5 rounded-full bg-warning-100 flex items-center justify-center text-[7px] font-bold text-warning-600">
+                                                        {m.reviewer.name.charAt(0)}
+                                                    </div>
+                                                    <span className="text-slate-700 font-medium truncate max-w-[60px]">{m.reviewer.name}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </motion.div>
@@ -165,6 +191,26 @@ export default function KanbanBoard({ projectId }: { projectId: string }) {
                             <div>
                                 <label className="input-label">Due Date (Optional)</label>
                                 <input type="date" className="input-field" value={newMilestone.dueDate} onChange={e => setNewMilestone({ ...newMilestone, dueDate: e.target.value })} />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="input-label">Assignee</label>
+                                    <select className="input-field" value={newMilestone.assigneeId} onChange={e => setNewMilestone({ ...newMilestone, assigneeId: e.target.value })}>
+                                        <option value="">Unassigned</option>
+                                        {members?.map((m: any) => (
+                                            <option key={m.user.id} value={m.user.id}>{m.user.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="input-label">Reviewer</label>
+                                    <select className="input-field" value={newMilestone.reviewerId} onChange={e => setNewMilestone({ ...newMilestone, reviewerId: e.target.value })}>
+                                        <option value="">Unassigned</option>
+                                        {members?.map((m: any) => (
+                                            <option key={m.user.id} value={m.user.id}>{m.user.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                             <div className="flex justify-end pt-2">
                                 <button type="button" onClick={() => setShowAddModal(false)} className="btn-secondary mr-2">Cancel</button>

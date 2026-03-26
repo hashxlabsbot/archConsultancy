@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
                     startDate: { gte: new Date(today.getFullYear(), 0, 1) },
                 },
             });
-            myLeaveBalance = { total: 24, used: usedLeaves, remaining: 24 - usedLeaves };
+            myLeaveBalance = { total: 19, used: usedLeaves, remaining: 19 - usedLeaves };
         }
 
         // Recent reports (for managers)

@@ -1,17 +1,25 @@
 import type { Metadata } from 'next';
-import { Poppins } from 'next/font/google';
+import { Inter, Manrope } from 'next/font/google';
 import './globals.css';
 import { Providers } from './providers';
 
-const poppins = Poppins({
+const inter = Inter({
     subsets: ['latin'],
     weight: ['300', '400', '500', '600', '700'],
-    variable: '--font-poppins'
+    variable: '--font-inter',
+    display: 'swap',
+});
+
+const manrope = Manrope({
+    subsets: ['latin'],
+    weight: ['400', '500', '600', '700', '800'],
+    variable: '--font-manrope',
+    display: 'swap',
 });
 
 export const metadata: Metadata = {
     title: 'Arch Consultancy | Employee & Project Management',
-    description: 'Employee and project management portal for Arch Consultancy',
+    description: 'Premium employee and project management portal for Arch Consultancy',
 };
 
 export default function RootLayout({
@@ -20,8 +28,8 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en" className={poppins.variable}>
-            <body className="font-sans bg-gray-50 text-slate-800 antialiased selection:bg-primary-500/30">
+        <html lang="en" className={`${inter.variable} ${manrope.variable}`}>
+            <body className="bg-surface-base text-slate-800 antialiased selection:bg-primary-200 selection:text-primary-800">
                 <Providers>
                     {children}
                 </Providers>

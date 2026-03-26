@@ -71,7 +71,10 @@ export default function EmployeesPage() {
                                 <div className="flex-1 min-w-0">
                                     <h3 className="text-slate-900 font-medium truncate">{user.name}</h3>
                                     <span className={`badge ${getRoleBadgeColor(user.role)} mt-1`}>{user.role}</span>
-                                    <div className="mt-3 space-y-1.5">
+                                    {user.designation && (
+                                        <p className="text-xs text-slate-500 mt-0.5 font-medium">{user.designation}</p>
+                                    )}
+                                    <div className="mt-2 space-y-1.5">
                                         <div className="flex items-center gap-2 text-xs text-slate-500">
                                             <HiOutlineEnvelope className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
                                             <span className="truncate">{user.email}</span>
@@ -80,6 +83,11 @@ export default function EmployeesPage() {
                                             <div className="flex items-center gap-2 text-xs text-slate-500">
                                                 <HiOutlinePhone className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
                                                 <span>{user.phone}</span>
+                                            </div>
+                                        )}
+                                        {user.joiningDate && (
+                                            <div className="text-xs text-slate-400">
+                                                Joined: {new Date(user.joiningDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                                             </div>
                                         )}
                                     </div>

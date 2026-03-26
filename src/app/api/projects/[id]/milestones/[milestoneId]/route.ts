@@ -9,7 +9,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
-        const { title, description, status, sequence, dueDate } = body;
+        const { title, description, status, sequence, dueDate, assigneeId, reviewerId } = body;
 
         const data: any = {};
         if (title !== undefined) data.title = title;
@@ -17,10 +17,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (status !== undefined) data.status = status;
         if (sequence !== undefined) data.sequence = sequence;
         if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
+        if (assigneeId !== undefined) data.assigneeId = assigneeId || null;
+        if (reviewerId !== undefined) data.reviewerId = reviewerId || null;
 
         const milestone = await prisma.milestone.update({
             where: { id: params.milestoneId },
             data,
+            include: {
+                assignee: { select: { id: true, name: true, avatar: true } },
+                reviewer: { select: { id: true, name: true, avatar: true } },
+            }
         });
 
         return NextResponse.json({ success: true, milestone });

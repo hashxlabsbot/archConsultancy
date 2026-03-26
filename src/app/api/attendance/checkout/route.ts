@@ -30,6 +30,32 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Already checked out today' }, { status: 409 });
         }
 
+        // Check for approved short leave for today
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date();
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const shortLeave = await prisma.shortLeaveRequest.findFirst({
+            where: {
+                userId,
+                date: { gte: todayStart, lte: todayEnd },
+                status: 'APPROVED'
+            }
+        });
+
+        const requiredHours = shortLeave ? Math.max(0, 8 - shortLeave.hoursRequested) : 8;
+        const REQUIRED_MS = requiredHours * 60 * 60 * 1000;
+
+        const timeElapsed = Date.now() - new Date(attendance.checkIn).getTime();
+        if (timeElapsed < REQUIRED_MS) {
+            const hoursRemaining = Math.max(0, requiredHours - (timeElapsed / (1000 * 60 * 60))).toFixed(1);
+            return NextResponse.json(
+                { error: `You must complete ${requiredHours} working hours to check out${shortLeave ? ` (Adjusted down by ${shortLeave.hoursRequested}h for Short Leave)` : ''}. (${hoursRemaining}h remaining)` },
+                { status: 403 }
+            );
+        }
+
         // 🔒 CORE RULE: Cannot checkout without submitting daily report
         if (!attendance.reportSubmitted) {
             // Increment failed checkout attempts

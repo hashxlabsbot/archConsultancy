@@ -11,6 +11,7 @@ export default function AdminAttendancePage() {
     const [attendancePeriod, setAttendancePeriod] = useState<'daily' | 'monthly' | 'all' | 'custom'>('daily');
     const [customDate, setCustomDate] = useState(new Date().toISOString().split('T')[0]);
     const [loadingAttendance, setLoadingAttendance] = useState(true);
+    const [shortLeaves, setShortLeaves] = useState<any[]>([]);
 
     // Report Modal State
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -30,7 +31,30 @@ export default function AdminAttendancePage() {
                 const data = await res.json();
                 setAttendanceRecords(data.records);
             }
+
+            const slRes = await fetch('/api/admin/short-leaves');
+            if (slRes.ok) {
+                const slData = await slRes.json();
+                setShortLeaves(slData.requests);
+            }
         } catch (err) { } finally { setLoadingAttendance(false); }
+    };
+
+    const handleShortLeaveAction = async (id: string, status: 'APPROVED' | 'REJECTED') => {
+        try {
+            const res = await fetch(`/api/admin/short-leaves/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status })
+            });
+            if (res.ok) {
+                fetchAdminAttendance();
+            } else {
+                alert('Failed to update request');
+            }
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     const openReportModal = (report: any) => {
@@ -45,6 +69,57 @@ export default function AdminAttendancePage() {
                     <h1 className="text-2xl font-bold text-slate-900">Attendance & Reports</h1>
                     <p className="text-slate-500 mt-1">Review organization-wide check-ins, hours worked, and daily status reports</p>
                 </div>
+
+                {/* Pending Early Checkouts */}
+                {shortLeaves.length > 0 && (
+                    <div className="glass-card overflow-hidden">
+                        <div className="p-5 border-b border-warning-200/50 bg-warning-50/50">
+                            <h2 className="text-lg font-semibold text-warning-900">Early Checkout Requests</h2>
+                        </div>
+                        <div className="overflow-x-auto min-h-[50px]">
+                            <table className="w-full">
+                                <thead>
+                                    <tr className="bg-white">
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Employee</th>
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Requested Date</th>
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Hours</th>
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Reason</th>
+                                        <th className="text-center text-sm text-slate-500 px-5 py-3 font-medium">Status / Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {shortLeaves.map(sl => (
+                                        <tr key={sl.id} className="border-t border-slate-100 bg-white hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-5 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs text-slate-600 font-bold border border-slate-200 shadow-sm">
+                                                        {getInitials(sl.user?.name || '?')}
+                                                    </div>
+                                                    <span className="text-sm text-slate-700 font-medium">{sl.user?.name || 'Unknown User'}</span>
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 text-sm font-medium text-slate-900">{formatDate(sl.date)}</td>
+                                            <td className="px-5 py-3 text-sm text-slate-600 font-bold">{sl.hoursRequested}h</td>
+                                            <td className="px-5 py-3 text-sm text-slate-600 max-w-xs truncate" title={sl.reason}>{sl.reason}</td>
+                                            <td className="px-5 py-3 text-center">
+                                                {sl.status === 'PENDING' ? (
+                                                    <div className="flex justify-center gap-2">
+                                                        <button onClick={() => handleShortLeaveAction(sl.id, 'APPROVED')} className="text-xs px-3 py-1 bg-success-50 text-success-600 font-bold rounded hover:bg-success-100 border border-success-200 transition-colors">Approve</button>
+                                                        <button onClick={() => handleShortLeaveAction(sl.id, 'REJECTED')} className="text-xs px-3 py-1 bg-danger-50 text-danger-600 font-bold rounded hover:bg-danger-100 border border-danger-200 transition-colors">Reject</button>
+                                                    </div>
+                                                ) : (
+                                                    <span className={`inline-flex px-2 py-1 rounded text-xs font-bold ${sl.status === 'APPROVED' ? 'bg-success-100 text-success-700' : 'bg-danger-100 text-danger-700'}`}>
+                                                        {sl.status} {sl.approvedBy && ` (by ${sl.approvedBy.name})`}
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                )}
 
                 <div className="glass-card overflow-hidden">
                     <div className="p-5 border-b border-gray-200/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white/50">

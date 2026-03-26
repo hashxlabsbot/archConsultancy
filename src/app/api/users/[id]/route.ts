@@ -17,7 +17,7 @@ export async function PATCH(
 
         const id = params.id;
         const body = await req.json();
-        const { name, email, role, password, phone, skills } = body;
+        const { name, email, role, password, phone, skills, designation, fathersName, joiningDate, panCard, aadharNo } = body;
 
         // Ensure user exists
         const existingUser = await prisma.user.findUnique({ where: { id } });
@@ -31,6 +31,11 @@ export async function PATCH(
         if (role) updateData.role = role;
         if (phone !== undefined) updateData.phone = phone;
         if (skills !== undefined) updateData.skills = skills;
+        if (designation !== undefined) updateData.designation = designation;
+        if (fathersName !== undefined) updateData.fathersName = fathersName;
+        if (joiningDate !== undefined) updateData.joiningDate = joiningDate ? new Date(joiningDate) : null;
+        if (panCard !== undefined) updateData.panCard = panCard;
+        if (aadharNo !== undefined) updateData.aadharNo = aadharNo;
 
         if (password) {
             updateData.passwordHash = await bcrypt.hash(password, 12);
@@ -39,7 +44,7 @@ export async function PATCH(
         const updatedUser = await prisma.user.update({
             where: { id },
             data: updateData,
-            select: { id: true, name: true, email: true, role: true, phone: true, skills: true }
+            select: { id: true, name: true, email: true, role: true, phone: true, skills: true, designation: true, fathersName: true, joiningDate: true, panCard: true, aadharNo: true }
         });
 
         return NextResponse.json({ user: updatedUser });

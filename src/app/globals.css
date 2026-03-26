@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -12,8 +12,21 @@
   }
 
   body {
-    @apply bg-gray-50 text-slate-800 font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    background-color: #f5f6fa;
+    color: #2c2f32;
     min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Manrope', system-ui, sans-serif;
+    letter-spacing: -0.02em;
   }
 
   /* Custom scrollbar */
@@ -23,99 +36,402 @@
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    background: #eff1f5;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    background: #dadde2;
+    border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+    background: #abadb1;
   }
 }
 
 @layer components {
 
-  /* Light theme card effect */
+  /* ============================
+     CARDS
+  ============================ */
   .glass-card {
-    @apply bg-white shadow-sm border border-gray-100 rounded-2xl;
+    @apply bg-white rounded-2xl;
+    box-shadow: 0 1px 3px rgba(70, 71, 211, 0.06), 0 8px 24px rgba(70, 71, 211, 0.04);
   }
 
   .glass-card-hover {
-    @apply bg-white shadow-sm border border-gray-100 rounded-2xl transition-all duration-300 hover:border-primary-500/30 hover:shadow-md hover:shadow-primary-500/5;
+    @apply bg-white rounded-2xl transition-all duration-300 cursor-pointer;
+    box-shadow: 0 1px 3px rgba(70, 71, 211, 0.06), 0 8px 24px rgba(70, 71, 211, 0.04);
   }
 
-  /* Gradient text */
+  .glass-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(70, 71, 211, 0.1), 0 16px 40px rgba(70, 71, 211, 0.08);
+  }
+
+  /* ============================
+     STAT CARDS
+  ============================ */
+  .stat-card {
+    @apply bg-white rounded-2xl p-5 transition-all duration-300;
+    box-shadow: 0 1px 3px rgba(70, 71, 211, 0.06), 0 8px 24px rgba(70, 71, 211, 0.04);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(70, 71, 211, 0.12), 0 20px 48px rgba(70, 71, 211, 0.07);
+  }
+
+  /* ============================
+     HERO BANNER
+  ============================ */
+  .hero-banner {
+    @apply rounded-3xl relative overflow-hidden;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 40%, #0ea5e9 100%);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3), 0 2px 8px rgba(99, 102, 241, 0.2);
+  }
+
+  .hero-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .hero-banner::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: 20%;
+    width: 250px;
+    height: 250px;
+    background: radial-gradient(circle, rgba(14, 165, 233, 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  /* ============================
+     GRADIENT TEXT
+  ============================ */
   .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary-500 to-secondary-500;
+    background: linear-gradient(135deg, #6366f1, #0ea5e9);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
-  /* Status dots */
-  .status-dot {
-    @apply w-2.5 h-2.5 rounded-full;
-  }
-
-  .status-dot-active {
-    @apply status-dot bg-success-500 shadow-sm shadow-success-500/50;
-  }
-
-  .status-dot-warning {
-    @apply status-dot bg-warning-500 shadow-sm shadow-warning-500/50;
-  }
-
-  .status-dot-danger {
-    @apply status-dot bg-danger-500 shadow-sm shadow-danger-500/50;
-  }
-
-  /* Button styles */
+  /* ============================
+     BUTTONS
+  ============================ */
   .btn-primary {
-    @apply px-6 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-medium transition-all duration-300 hover:from-primary-600 hover:to-primary-700 hover:shadow-md hover:shadow-primary-500/25 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none;
+    @apply px-5 py-2.5 rounded-xl font-semibold text-white transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    font-family: 'Manrope', sans-serif;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #4f46e5, #4338ca);
+    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+    transform: translateY(-1px);
   }
 
   .btn-secondary {
-    @apply px-6 py-2.5 bg-white text-slate-700 border border-gray-200 rounded-xl font-medium transition-all duration-300 hover:bg-gray-50 hover:border-gray-300 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-5 py-2.5 rounded-xl font-semibold text-indigo-600 bg-indigo-50 transition-all duration-300 active:scale-[0.98] disabled:opacity-50;
+    font-family: 'Manrope', sans-serif;
+  }
+
+  .btn-secondary:hover {
+    @apply bg-indigo-100;
   }
 
   .btn-danger {
-    @apply px-6 py-2.5 bg-gradient-to-r from-danger-500 to-danger-600 text-white rounded-xl font-medium transition-all duration-300 hover:from-danger-600 hover:to-danger-700 hover:shadow-md hover:shadow-danger-500/25 active:scale-[0.98] disabled:opacity-50;
+    @apply px-5 py-2.5 rounded-xl font-semibold text-white transition-all duration-300 active:scale-[0.98];
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    font-family: 'Manrope', sans-serif;
+  }
+
+  .btn-danger:hover {
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.45);
+    transform: translateY(-1px);
   }
 
   .btn-success {
-    @apply px-6 py-2.5 bg-gradient-to-r from-success-500 to-success-600 text-white rounded-xl font-medium transition-all duration-300 hover:from-success-600 hover:to-success-700 hover:shadow-md hover:shadow-success-500/25 active:scale-[0.98] disabled:opacity-50;
+    @apply px-5 py-2.5 rounded-xl font-semibold text-white transition-all duration-300 active:scale-[0.98];
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    font-family: 'Manrope', sans-serif;
   }
 
-  /* Input styles */
+  .btn-success:hover {
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45);
+    transform: translateY(-1px);
+  }
+
+  /* ============================
+     INPUTS
+  ============================ */
   .input-field {
-    @apply w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary-500 focus:ring-1 focus:ring-primary-500/50 transition-all duration-300;
+    @apply w-full px-4 py-3 bg-white rounded-xl text-slate-900 placeholder-slate-400 transition-all duration-300;
+    border: 1.5px solid #e0e2e8;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+  }
+
+  .input-field:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
   }
 
   .input-label {
-    @apply block text-sm font-medium text-slate-700 mb-1.5;
+    @apply block text-sm font-semibold mb-1.5;
+    font-family: 'Manrope', sans-serif;
+    color: #2c2f32;
+    letter-spacing: 0.01em;
   }
 
-  /* Badge */
+  /* ============================
+     BADGES
+  ============================ */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
+    font-family: 'Inter', sans-serif;
   }
 
-  /* Sidebar item */
+  /* ============================
+     SIDEBAR
+  ============================ */
   .sidebar-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 transition-all duration-200 hover:bg-gray-50 hover:text-slate-900 cursor-pointer;
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-500 font-medium transition-all duration-200 cursor-pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+  }
+
+  .sidebar-item:hover {
+    @apply bg-indigo-50 text-indigo-600;
   }
 
   .sidebar-item-active {
-    @apply flex items-center gap-3 px-4 py-3 rounded-xl bg-primary-50 text-primary-600 border-r-2 border-primary-500 font-medium cursor-pointer;
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-indigo-600 font-semibold cursor-pointer;
+    background: linear-gradient(135deg, #ede9fe, #dbeafe);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    box-shadow: inset 3px 0 0 #6366f1;
+  }
+
+  /* ============================
+     STATUS DOTS
+  ============================ */
+  .status-dot {
+    @apply w-2.5 h-2.5 rounded-full flex-shrink-0;
+  }
+
+  .status-dot-active {
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  }
+
+  .status-dot-warning {
+    background: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+  }
+
+  .status-dot-danger {
+    background: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+  }
+
+  /* ============================
+     SECTION LABEL
+  ============================ */
+  .section-label {
+    @apply text-xs font-bold uppercase tracking-widest text-slate-400;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* ============================
+     ICON SQUARES
+  ============================ */
+  .icon-sq-indigo {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  }
+
+  .icon-sq-sky {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0;
+    background: linear-gradient(135deg, #0ea5e9, #0284c7);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+  }
+
+  /* --- Architecture Specific Utility Classes & Animations --- */
+
+  .arch-blueprint-grid {
+    background-image:
+      linear-gradient(to right, rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: center center;
+  }
+
+  .arch-blueprint-grid-lg {
+    background-image:
+      linear-gradient(to right, rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
+    background-size: 120px 120px;
+    background-position: center center;
+  }
+
+  .arch-blueprint-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  @keyframes draw-arch-line-h {
+    0% {
+      width: 0;
+      opacity: 0;
+    }
+
+    10% {
+      opacity: 1;
+    }
+
+    100% {
+      width: 100%;
+      opacity: 0.1;
+    }
+  }
+
+  @keyframes draw-arch-line-v {
+    0% {
+      height: 0;
+      opacity: 0;
+    }
+
+    10% {
+      opacity: 1;
+    }
+
+    100% {
+      height: 100%;
+      opacity: 0.1;
+    }
+  }
+
+  .arch-line-h {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+    animation: draw-arch-line-h 4s ease-out infinite;
+  }
+
+  .arch-line-v {
+    position: absolute;
+    width: 1px;
+    background: linear-gradient(180deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+    animation: draw-arch-line-v 4s ease-out infinite;
+  }
+
+  /* Floating Golden Ratio Squares */
+  @keyframes float-geometry {
+
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+
+    50% {
+      transform: translateY(-20px) rotate(5deg);
+    }
+  }
+
+  .arch-geometry-float {
+    animation: float-geometry 10s ease-in-out infinite;
+  }
+
+  .arch-glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow:
+      0 4px 24px -2px rgba(15, 23, 42, 0.05),
+      inset 0 1px 1px rgba(255, 255, 255, 0.9);
+  }
+
+  .icon-sq-emerald {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0;
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+  }
+
+  .icon-sq-amber {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+  }
+
+  .icon-sq-violet {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35);
+  }
+
+  .icon-sq-rose {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0;
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    box-shadow: 0 4px 12px rgba(244, 63, 94, 0.35);
   }
 }
 
 @layer utilities {
-  .animate-gradient {
-    background-size: 200% 200%;
-    animation: gradient 3s ease infinite;
+
+  /* ============================
+     ANIMATIONS
+  ============================ */
+  @keyframes float {
+
+    0%,
+    100% {
+      transform: translateY(0px);
+    }
+
+    50% {
+      transform: translateY(-8px);
+    }
   }
 
-  @keyframes gradient {
+  @keyframes pulse-glow {
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    }
+
+    50% {
+      box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  @keyframes gradient-shift {
     0% {
       background-position: 0% 50%;
     }
@@ -127,5 +443,54 @@
     100% {
       background-position: 0% 50%;
     }
+  }
+
+  @keyframes spin-slow {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-float {
+    animation: float 4s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, #f5f6fa 25%, #e0e2e8 50%, #f5f6fa 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 4s ease infinite;
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+
+  .animate-fade-up {
+    animation: fadeInUp 0.5s ease-out forwards;
   }
 }

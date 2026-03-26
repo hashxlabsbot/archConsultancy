@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
             ? targetUserId
             : userId;
 
-        const [records, total] = await Promise.all([
+        const [records, total, leaves] = await Promise.all([
             prisma.attendance.findMany({
                 where: { userId: queryUserId },
                 include: { reports: true, user: { select: { id: true, name: true, email: true, role: true } } },
@@ -32,10 +32,15 @@ export async function GET(req: NextRequest) {
                 take: limit,
             }),
             prisma.attendance.count({ where: { userId: queryUserId } }),
+            prisma.leave.findMany({
+                where: { userId: queryUserId, status: 'APPROVED' },
+                orderBy: { startDate: 'desc' },
+            })
         ]);
 
         return NextResponse.json({
             records,
+            leaves,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         });
     } catch (error) {

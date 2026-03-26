@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
             orderBy: { createdAt: 'desc' },
         });
 
-        // Calculate balance (simple: 24 total per year - approved leaves)
+        // Calculate balance (company policy: 19 leaves per year)
         const approvedCount = await prisma.leave.count({
             where: {
                 userId,
@@ -72,7 +72,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({
             leaves,
-            balance: { total: 24, used: approvedCount, remaining: 24 - approvedCount },
+            balance: { total: 19, used: approvedCount, remaining: 19 - approvedCount },
         });
     } catch (error) {
         console.error('Leaves list error:', error);

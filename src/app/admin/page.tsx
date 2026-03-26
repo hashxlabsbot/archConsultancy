@@ -16,7 +16,8 @@ export default function AdminPage() {
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [formData, setFormData] = useState({
-        name: '', email: '', password: '', role: 'EMPLOYEE', phone: '', skills: ''
+        name: '', email: '', password: '', role: 'EMPLOYEE', phone: '', skills: '',
+        designation: '', fathersName: '', joiningDate: '', panCard: '', aadharNo: ''
     });
 
     useEffect(() => {
@@ -35,14 +36,23 @@ export default function AdminPage() {
     };
 
     const openAddModal = () => {
-        setFormData({ name: '', email: '', password: '', role: 'EMPLOYEE', phone: '', skills: '' });
+        setFormData({
+            name: '', email: '', password: '', role: 'EMPLOYEE', phone: '', skills: '',
+            designation: '', fathersName: '', joiningDate: '', panCard: '', aadharNo: ''
+        });
         setModalMode('add');
         setIsUserModalOpen(true);
     };
 
     const openEditModal = (user: any) => {
         setSelectedUser(user);
-        setFormData({ name: user.name, email: user.email, password: '', role: user.role, phone: user.phone || '', skills: user.skills || '' });
+        setFormData({
+            name: user.name, email: user.email, password: '', role: user.role,
+            phone: user.phone || '', skills: user.skills || '',
+            designation: user.designation || '', fathersName: user.fathersName || '',
+            joiningDate: user.joiningDate ? new Date(user.joiningDate).toISOString().split('T')[0] : '',
+            panCard: user.panCard || '', aadharNo: user.aadharNo || ''
+        });
         setModalMode('edit');
         setIsUserModalOpen(true);
     };
@@ -210,6 +220,32 @@ export default function AdminPage() {
                                 <div>
                                     <label className="input-label">Skills (Comma separated)</label>
                                     <input type="text" value={formData.skills} onChange={(e) => setFormData({ ...formData, skills: e.target.value })} className="input-field" placeholder="AutoCAD, React..." />
+                                </div>
+                                {/* Profile fields */}
+                                <div className="border-t pt-4">
+                                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Service Book Details</p>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="input-label">Designation</label>
+                                            <input type="text" value={formData.designation} onChange={(e) => setFormData({ ...formData, designation: e.target.value })} className="input-field" placeholder="Junior Architect" />
+                                        </div>
+                                        <div>
+                                            <label className="input-label">Father's Name</label>
+                                            <input type="text" value={formData.fathersName} onChange={(e) => setFormData({ ...formData, fathersName: e.target.value })} className="input-field" placeholder="s/o Mr. Name" />
+                                        </div>
+                                        <div>
+                                            <label className="input-label">Joining Date</label>
+                                            <input type="date" value={formData.joiningDate} onChange={(e) => setFormData({ ...formData, joiningDate: e.target.value })} className="input-field" />
+                                        </div>
+                                        <div>
+                                            <label className="input-label">PAN Card No.</label>
+                                            <input type="text" value={formData.panCard} onChange={(e) => setFormData({ ...formData, panCard: e.target.value })} className="input-field" placeholder="ABCDE1234F" />
+                                        </div>
+                                        <div className="col-span-2">
+                                            <label className="input-label">Aadhar No.</label>
+                                            <input type="text" value={formData.aadharNo} onChange={(e) => setFormData({ ...formData, aadharNo: e.target.value })} className="input-field" placeholder="XXXX-XXXX-XXXX" />
+                                        </div>
+                                    </div>
                                 </div>
                                 <div>
                                     <label className="input-label">Password {modalMode === 'edit' && '(Leave blank to keep current)'}</label>

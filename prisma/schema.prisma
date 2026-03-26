@@ -17,20 +17,31 @@ model User {
   phone        String?
   skills       String?
   avatar       String?
+  // Profile Details
+  designation  String?
+  fathersName  String?
+  joiningDate  DateTime?
+  panCard      String?
+  aadharNo     String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  attendances    Attendance[]
-  reports        Report[]
-  leaves         Leave[]
-  ownedProjects  Project[]       @relation("ProjectOwner")
-  projectMembers ProjectMember[]
-  documents      Document[]
-  signedReports  Report[]        @relation("ReportSignOff")
-  approvedLeaves Leave[]         @relation("LeaveApprover")
-  notifications  Notification[]
-  siteVisits     SiteVisit[]
-  salarySlips    SalarySlip[]
+  attendances         Attendance[]
+  reports             Report[]
+  leaves              Leave[]
+  ownedProjects       Project[]           @relation("ProjectOwner")
+  projectMembers      ProjectMember[]
+  documents           Document[]
+  signedReports       Report[]            @relation("ReportSignOff")
+  approvedLeaves      Leave[]             @relation("LeaveApprover")
+  notifications       Notification[]
+  siteVisits          SiteVisit[]
+  salarySlips         SalarySlip[]
+  assignedMilestones  Milestone[]         @relation("MilestoneAssignee")
+  reviewedMilestones  Milestone[]         @relation("MilestoneReviewer")
+  shortLeaves         ShortLeaveRequest[] @relation("UserShortLeaves")
+  approvedShortLeaves ShortLeaveRequest[] @relation("ApprovedShortLeaves")
+  salaryStructure     SalaryStructure?
 }
 
 model Attendance {
@@ -48,22 +59,22 @@ model Attendance {
 }
 
 model Report {
-  id             String    @id @default(cuid())
+  id             String     @id @default(cuid())
   attendanceId   String
   attendance     Attendance @relation(fields: [attendanceId], references: [id])
   userId         String
-  user           User      @relation(fields: [userId], references: [id])
-  projectId      String?   // New: Optional linking to a Project
-  project        Project?  @relation(fields: [projectId], references: [id])
+  user           User       @relation(fields: [userId], references: [id])
+  projectId      String? // New: Optional linking to a Project
+  project        Project?   @relation(fields: [projectId], references: [id])
   tasks          String
   blockers       String?
   nextPlan       String?
-  imageUrl       String?   // New: Optional image upload (base64 or path)
-  submittedAt    DateTime  @default(now())
+  imageUrl       String? // New: Optional image upload (base64 or path)
+  submittedAt    DateTime   @default(now())
   managerComment String?
   signedOffBy    String?
-  signedOffUser  User?     @relation("ReportSignOff", fields: [signedOffBy], references: [id])
-  createdAt      DateTime  @default(now())
+  signedOffUser  User?      @relation("ReportSignOff", fields: [signedOffBy], references: [id])
+  createdAt      DateTime   @default(now())
 }
 
 model Leave {
@@ -83,13 +94,13 @@ model Leave {
 }
 
 model Project {
-  id          String   @id @default(cuid())
-  name        String
-  client      String
-  startDate   DateTime
-  endDate     DateTime?
-  description String?
-  status       String   @default("ACTIVE") // ACTIVE, COMPLETED, ON_HOLD
+  id           String    @id @default(cuid())
+  name         String
+  client       String
+  startDate    DateTime
+  endDate      DateTime?
+  description  String?
+  status       String    @default("ACTIVE") // ACTIVE, COMPLETED, ON_HOLD
   location     String?
   latitude     Float?
   longitude    Float?
@@ -97,9 +108,9 @@ model Project {
   contactPhone String?
   contactEmail String?
   ownerId      String
-  owner        User     @relation("ProjectOwner", fields: [ownerId], references: [id])
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  owner        User      @relation("ProjectOwner", fields: [ownerId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   members    ProjectMember[]
   documents  Document[]
@@ -128,7 +139,7 @@ model Document {
   version     Int      @default(1)
   uploadedBy  String
   uploader    User     @relation(fields: [uploadedBy], references: [id])
-  tags        String?  // JSON stringified array
+  tags        String? // JSON stringified array
   mimeType    String?
   size        Int?
   createdAt   DateTime @default(now())
@@ -136,54 +147,113 @@ model Document {
 
 model Notification {
   id        String   @id @default(cuid())
-  userId    String   // Admin who receives it
+  userId    String // Admin who receives it
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   message   String
   isRead    Boolean  @default(false)
-  link      String?  
+  link      String?
   createdAt DateTime @default(now())
 }
 
 model SiteVisit {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  date        DateTime @default(now())
-  latitude    Float?
-  longitude   Float?
-  address     String?
-  notes       String
-  photoUrls   String?  // JSON stringified array of base64 strings
-  status      String   @default("PENDING") // PENDING, REVIEWED
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date      DateTime @default(now())
+  latitude  Float?
+  longitude Float?
+  address   String?
+  notes     String
+  photoUrls String? // JSON stringified array of base64 strings
+  status    String   @default("PENDING") // PENDING, REVIEWED
+  createdAt DateTime @default(now())
 }
 
 model Milestone {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   title       String
   description String?
-  status      String   @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
-  sequence    Int      @default(0)
+  status      String    @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
+  sequence    Int       @default(0)
   dueDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  assigneeId  String?
+  assignee    User?     @relation("MilestoneAssignee", fields: [assigneeId], references: [id])
+  reviewerId  String?
+  reviewer    User?     @relation("MilestoneReviewer", fields: [reviewerId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+
+model ShortLeaveRequest {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation("UserShortLeaves", fields: [userId], references: [id], onDelete: Cascade)
+  date           DateTime
+  hoursRequested Float
+  reason         String
+  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  approvedById   String?
+  approvedBy     User?    @relation("ApprovedShortLeaves", fields: [approvedById], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model SalaryStructure {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  basicSalary         Float    @default(0)
+  hraRate             Float    @default(50) // Percentage of basic
+  daRate              Float    @default(10) // Percentage of basic
+  
+  medicalAllowance    Float    @default(0)
+  mobileAllowance     Float    @default(0)
+  travelAllowance     Float    @default(0)
+  seniorityAllowance  Float    @default(0)
+  
+  annualIncentiveRate Float    @default(5) // Percentage of basic
+  annualIncentiveMonth String? // e.g. "January"
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model SalarySlip {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  monthYear   String   // e.g., 'March 2026'
-  basicPay    Float
-  allowances  Float    @default(0)
-  deductions  Float    @default(0)
-  netPay      Float
-  status      String   @default("PAID") // PENDING, PAID
-  remarks     String?
-  createdAt   DateTime @default(now())
+  id                  String   @id @default(cuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  month               String   // e.g. "October"
+  year                Int      // e.g. 2025
+  
+  allowedLeaves       Float    @default(0)
+  balanceLeaves       Float    @default(0)
+  excessLeaves        Float    @default(0)
+  
+  basicSalary         Float
+  houseRentAllowance  Float
+  dearnessAllowance   Float
+  medicalAllowance    Float
+  mobileAllowance     Float
+  travelAllowance     Float
+  seniorityAllowance  Float
+  leaveAllowance      Float    @default(0)
+  annualIncentive     Float    @default(0)
+  advanceDeduction    Float    @default(0)
+  
+  grossSalary         Float
+  
+  status              String   @default("GENERATED") // GENERATED, PAID
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@unique([userId, month, year])
 }
