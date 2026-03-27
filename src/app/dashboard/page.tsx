@@ -16,6 +16,7 @@ import {
     HiOutlineBanknotes,
     HiOutlineArrowUpRight,
     HiOutlineWrenchScrewdriver,
+    HiOutlineTrophy,
 } from 'react-icons/hi2';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import toast from 'react-hot-toast';
@@ -76,16 +77,30 @@ export default function DashboardPage() {
     const { data: session } = useSession();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [currentEOM, setCurrentEOM] = useState<any>(null);
     const role = (session?.user as any)?.role || 'EMPLOYEE';
     const firstName = session?.user?.name?.split(' ')[0] || 'there';
 
-    useEffect(() => { fetchDashboard(); }, []);
+    useEffect(() => {
+        fetchDashboard();
+        fetchEOM();
+    }, []);
 
     const fetchDashboard = async () => {
         try {
             const res = await fetch('/api/dashboard');
             if (res.ok) setData(await res.json());
         } catch (e) { } finally { setLoading(false); }
+    };
+
+    const fetchEOM = async () => {
+        try {
+            const res = await fetch('/api/employee-of-month');
+            if (res.ok) {
+                const d = await res.json();
+                setCurrentEOM(d.current);
+            }
+        } catch { }
     };
 
     const fetchLocation = async (): Promise<{ latitude: number; longitude: number; address: string } | null> => {
@@ -576,6 +591,31 @@ export default function DashboardPage() {
                                 </div>
                             )}
                         </div>
+                    </motion.div>
+                )}
+
+                {/* ── Employee of the Month Banner ── */}
+                {currentEOM && (
+                    <motion.div variants={itemVariants}>
+                        <Link href="/employee-of-month" className="block group">
+                            <div
+                                className="relative overflow-hidden rounded-2xl p-5 flex items-center gap-5 cursor-pointer transition-transform hover:scale-[1.01]"
+                                style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 60%, #0ea5e9 100%)', boxShadow: '0 6px 24px rgba(99,102,241,0.30)' }}
+                            >
+                                <div className="absolute top-0 right-0 w-40 h-40 rounded-full opacity-10 pointer-events-none" style={{ background: 'radial-gradient(circle, #fff, transparent)', transform: 'translate(20%, -20%)' }} />
+                                <div className="flex-shrink-0 w-14 h-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
+                                    <HiOutlineTrophy className="w-7 h-7 text-yellow-300" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Employee of the Month</p>
+                                    <p className="text-white text-lg font-bold truncate" style={{ fontFamily: 'Manrope, sans-serif' }}>{currentEOM.user.name}</p>
+                                    {currentEOM.reason && (
+                                        <p className="text-white/70 text-xs truncate">{currentEOM.reason}</p>
+                                    )}
+                                </div>
+                                <HiOutlineArrowUpRight className="w-5 h-5 text-white/60 flex-shrink-0 group-hover:text-white transition-colors" />
+                            </div>
+                        </Link>
                     </motion.div>
                 )}
 

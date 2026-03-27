@@ -119,6 +119,16 @@ export async function POST(req: NextRequest) {
                 }
             });
 
+            // Notify the employee that their salary slip is ready
+            await prisma.notification.create({
+                data: {
+                    userId: user.id,
+                    title: 'Salary Slip Generated',
+                    message: `Your salary slip for ${month} ${year} has been generated. Gross salary: ₹${gross.toLocaleString('en-IN')}.`,
+                    link: '/salary',
+                },
+            });
+
             generated.push({ name: user.name, gross });
         }
 

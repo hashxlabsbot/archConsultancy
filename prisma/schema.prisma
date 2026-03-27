@@ -26,23 +26,39 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  attendances         Attendance[]
-  reports             Report[]
-  leaves              Leave[]
-  ownedProjects       Project[]           @relation("ProjectOwner")
-  projectMembers      ProjectMember[]
-  documents           Document[]
-  signedReports       Report[]            @relation("ReportSignOff")
-  approvedLeaves      Leave[]             @relation("LeaveApprover")
-  notifications       Notification[]
-  siteVisits          SiteVisit[]
-  salarySlips         SalarySlip[]
-  assignedMilestones  Milestone[]         @relation("MilestoneAssignee")
-  reviewedMilestones  Milestone[]         @relation("MilestoneReviewer")
-  shortLeaves         ShortLeaveRequest[] @relation("UserShortLeaves")
-  approvedShortLeaves ShortLeaveRequest[] @relation("ApprovedShortLeaves")
-  salaryStructure     SalaryStructure?
-  dailySiteLogs       DailySiteLog[]
+  attendances              Attendance[]
+  reports                  Report[]
+  leaves                   Leave[]
+  ownedProjects            Project[]              @relation("ProjectOwner")
+  projectMembers           ProjectMember[]
+  documents                Document[]
+  signedReports            Report[]               @relation("ReportSignOff")
+  approvedLeaves           Leave[]                @relation("LeaveApprover")
+  notifications            Notification[]
+  siteVisits               SiteVisit[]
+  salarySlips              SalarySlip[]
+  assignedMilestones       Milestone[]            @relation("MilestoneAssignee")
+  reviewedMilestones       Milestone[]            @relation("MilestoneReviewer")
+  shortLeaves              ShortLeaveRequest[]    @relation("UserShortLeaves")
+  approvedShortLeaves      ShortLeaveRequest[]    @relation("ApprovedShortLeaves")
+  salaryStructure          SalaryStructure?
+  dailySiteLogs            DailySiteLog[]
+  employeeOfMonthAwards    EmployeeOfTheMonth[]   @relation("EOMWinner")
+  employeeOfMonthGranted   EmployeeOfTheMonth[]   @relation("EOMGrantedBy")
+}
+
+model EmployeeOfTheMonth {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("EOMWinner", fields: [userId], references: [id])
+  month       Int      // 1-12
+  year        Int
+  reason      String?
+  grantedById String
+  grantedBy   User     @relation("EOMGrantedBy", fields: [grantedById], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@unique([month, year])
 }
 
 model Attendance {

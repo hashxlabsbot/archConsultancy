@@ -31,7 +31,20 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             data: {
                 status,
                 approvedById: adminId
-            }
+            },
+            include: { user: { select: { id: true, name: true } } },
+        });
+
+        // Notify the employee of the decision
+        await prisma.notification.create({
+            data: {
+                userId: shortLeave.userId,
+                title: status === 'APPROVED' ? 'Short Leave Approved' : 'Short Leave Rejected',
+                message: status === 'APPROVED'
+                    ? `Your short leave request of ${shortLeave.hoursRequested}h has been approved.`
+                    : `Your short leave request of ${shortLeave.hoursRequested}h has been rejected.`,
+                link: '/attendance',
+            },
         });
 
         return NextResponse.json({ request: updatedRequest });

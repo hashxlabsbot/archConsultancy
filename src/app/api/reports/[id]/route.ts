@@ -30,6 +30,17 @@ export async function PATCH(
             },
             include: {
                 user: { select: { id: true, name: true, email: true } },
+                attendance: { select: { date: true } },
+            },
+        });
+
+        // Notify the employee that their report received a comment
+        await prisma.notification.create({
+            data: {
+                userId: report.user.id,
+                title: 'Report Feedback Received',
+                message: `Your daily report has been reviewed. Feedback: "${managerComment}"`,
+                link: '/reports',
             },
         });
 

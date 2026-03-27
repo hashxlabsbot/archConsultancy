@@ -31,6 +31,18 @@ export async function POST(req: NextRequest) {
                 endDate: new Date(endDate),
                 reason,
             },
+            include: { user: { select: { name: true } } },
+        });
+
+        // Notify all admins about the leave request
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+        await prisma.notification.createMany({
+            data: admins.map((admin) => ({
+                userId: admin.id,
+                title: 'New Leave Request',
+                message: `${leave.user.name} has applied for ${leave.type.toLowerCase()} leave from ${new Date(startDate).toLocaleDateString('en-IN')} to ${new Date(endDate).toLocaleDateString('en-IN')}.`,
+                link: '/leaves',
+            })),
         });
 
         return NextResponse.json({ leave }, { status: 201 });

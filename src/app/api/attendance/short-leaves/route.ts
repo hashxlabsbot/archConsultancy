@@ -119,7 +119,19 @@ export async function POST(req: NextRequest) {
                 hoursRequested,
                 reason,
                 status: 'PENDING'
-            }
+            },
+            include: { user: { select: { name: true } } },
+        });
+
+        // Notify all admins about the short leave request
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+        await prisma.notification.createMany({
+            data: admins.map((admin) => ({
+                userId: admin.id,
+                title: 'Short Leave Request',
+                message: `${newRequest.user.name} has requested ${hoursRequested}h short leave on ${new Date(date).toLocaleDateString('en-IN')}. Reason: ${reason}`,
+                link: '/admin-attendance',
+            })),
         });
 
         return NextResponse.json({ request: newRequest });

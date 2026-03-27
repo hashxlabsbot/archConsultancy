@@ -36,6 +36,19 @@ export async function PATCH(
             },
         });
 
+        // Notify the employee about the leave decision
+        const isApproved = action === 'APPROVED';
+        await prisma.notification.create({
+            data: {
+                userId: leave.user.id,
+                title: isApproved ? 'Leave Approved' : 'Leave Rejected',
+                message: isApproved
+                    ? `Your leave request has been approved.${comment ? ` Note: ${comment}` : ''}`
+                    : `Your leave request has been rejected.${comment ? ` Reason: ${comment}` : ''}`,
+                link: '/leaves',
+            },
+        });
+
         return NextResponse.json({ leave });
     } catch (error) {
         console.error('Leave approval error:', error);

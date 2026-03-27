@@ -1,9 +1,10 @@
 'use client';
 
 import { useSession, signOut } from 'next-auth/react';
-import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
     HiOutlineBell,
     HiOutlineArrowRightOnRectangle,
@@ -14,6 +15,10 @@ import {
     HiOutlineClock,
     HiOutlineDocumentText,
     HiOutlineCheckCircle,
+    HiOutlineTrophy,
+    HiOutlineCalendarDays,
+    HiOutlineCurrencyRupee,
+    HiOutlineClipboardDocumentCheck,
 } from 'react-icons/hi2';
 import { getInitials, getRoleBadgeColor } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -22,8 +27,28 @@ interface NavbarProps {
     onMenuClick: () => void;
 }
 
+function getNotifIcon(title: string) {
+    if (title.toLowerCase().includes('leave')) return <HiOutlineCalendarDays className="w-4 h-4 text-amber-500" />;
+    if (title.toLowerCase().includes('salary') || title.toLowerCase().includes('slip')) return <HiOutlineCurrencyRupee className="w-4 h-4 text-emerald-500" />;
+    if (title.toLowerCase().includes('report')) return <HiOutlineDocumentText className="w-4 h-4 text-sky-500" />;
+    if (title.toLowerCase().includes('employee of the month') || title.toLowerCase().includes('trophy')) return <HiOutlineTrophy className="w-4 h-4 text-violet-500" />;
+    if (title.toLowerCase().includes('approved') || title.toLowerCase().includes('success')) return <HiOutlineCheckCircle className="w-4 h-4 text-emerald-500" />;
+    return <HiOutlineClipboardDocumentCheck className="w-4 h-4 text-indigo-500" />;
+}
+
+function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+}
+
 export default function Navbar({ onMenuClick }: NavbarProps) {
     const { data: session } = useSession();
+    const router = useRouter();
     const [canLogout, setCanLogout] = useState(true);
     const [attendanceState, setAttendanceState] = useState({ checkedIn: false, reportSubmitted: false, checkedOut: false });
 
@@ -31,6 +56,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     const [notifications, setNotifications] = useState<any[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [showNotifications, setShowNotifications] = useState(false);
+    const notifRef = useRef<HTMLDivElement>(null);
 
     // Password Modal state
     const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -40,12 +66,30 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     const user = session?.user;
     const role = (user as any)?.role || 'EMPLOYEE';
 
-    // Check if user has submitted today's report (for checkout guard and quick actions)
     useEffect(() => {
         if (user && role !== 'ADMIN') {
             checkTodayStatus();
         }
     }, [user]);
+
+    // Fetch notifications for ALL roles, poll every 30s
+    useEffect(() => {
+        if (!user) return;
+        fetchNotifications();
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+    }, [user]);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+                setShowNotifications(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     const checkTodayStatus = async () => {
         try {
@@ -69,14 +113,8 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                     }
                 }
             }
-        } catch (error) {
-            // silently fail
-        }
+        } catch { }
     };
-
-    useEffect(() => {
-        if (role === 'ADMIN') fetchNotifications();
-    }, [role]);
 
     const fetchNotifications = async () => {
         try {
@@ -86,7 +124,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 setNotifications(data.notifications || []);
                 setUnreadCount(data.unreadCount || 0);
             }
-        } catch (e) { }
+        } catch { }
     };
 
     const markAsRead = async (id?: string) => {
@@ -97,8 +135,13 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                 body: JSON.stringify({ id })
             });
             fetchNotifications();
-            if (id) setShowNotifications(false); // Close dropdown if clicking a specific link
-        } catch (e) { }
+        } catch { }
+    };
+
+    const handleNotifClick = async (notif: any) => {
+        if (!notif.isRead) await markAsRead(notif.id);
+        setShowNotifications(false);
+        if (notif.link) router.push(notif.link);
     };
 
     const handlePasswordChange = async (e: React.FormEvent) => {
@@ -129,7 +172,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             } else {
                 toast.error(data.error || 'Failed to update password');
             }
-        } catch (e) {
+        } catch {
             toast.error('Something went wrong');
         } finally {
             setPasswordLoading(false);
@@ -138,10 +181,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
 
     const handleLogout = async () => {
         if (!canLogout && role === 'EMPLOYEE') {
-            toast.error('Please submit your daily report before logging out!', {
-                icon: '🔒',
-                duration: 5000,
-            });
+            toast.error('Please submit your daily report before logging out!', { icon: '🔒', duration: 5000 });
             return;
         }
         await signOut({ callbackUrl: '/login' });
@@ -152,17 +192,15 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             <motion.header
                 initial={{ y: -10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl px-3 sm:px-6 py-3 border-b border-indigo-100/40 relative overflow-hidden"
+                className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl px-3 sm:px-6 py-3 border-b border-indigo-100/40 relative"
                 style={{ boxShadow: '0 4px 24px rgba(99,102,241,0.06)' }}
             >
-                {/* Navbar ambient blueprint overlay */}
                 <div className="absolute inset-0 z-0 pointer-events-none opacity-10 mix-blend-multiply arch-blueprint-grid hidden md:block"
                     style={{ maskImage: 'linear-gradient(to bottom, black 20%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 20%, transparent 100%)' }} />
 
                 <div className="flex items-center justify-between relative z-10 gap-2">
                     {/* Left: hamburger + greeting */}
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                        {/* Mobile hamburger */}
                         <button onClick={onMenuClick} className="md:hidden p-2 -ml-1 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex-shrink-0">
                             <HiBars3 className="w-6 h-6" />
                         </button>
@@ -216,65 +254,101 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                             </motion.div>
                         )}
 
-                        {/* Notifications */}
-                        {role === 'ADMIN' && (
-                            <div className="relative">
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => setShowNotifications(!showNotifications)}
-                                    className="relative p-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
-                                >
-                                    <HiOutlineBell className="w-5 h-5" />
-                                    {unreadCount > 0 && (
-                                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full">
-                                            <span className="absolute inset-0 rounded-full bg-rose-500 animate-ping opacity-75" />
-                                        </span>
-                                    )}
-                                </motion.button>
+                        {/* Notifications — ALL roles */}
+                        <div className="relative" ref={notifRef}>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => {
+                                    setShowNotifications(!showNotifications);
+                                    if (!showNotifications) fetchNotifications();
+                                }}
+                                className="relative p-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
+                                title="Notifications"
+                            >
+                                <HiOutlineBell className="w-5 h-5" />
+                                {unreadCount > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-rose-500 rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1 leading-none">
+                                        {unreadCount > 99 ? '99+' : unreadCount}
+                                        <span className="absolute inset-0 rounded-full bg-rose-500 animate-ping opacity-50" />
+                                    </span>
+                                )}
+                            </motion.button>
 
-                                {/* Dropdown */}
+                            {/* Dropdown */}
+                            <AnimatePresence>
                                 {showNotifications && (
                                     <motion.div
                                         initial={{ opacity: 0, y: 8, scale: 0.95 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        className="absolute right-0 mt-2 w-80 bg-white rounded-2xl overflow-hidden z-50"
-                                        style={{ boxShadow: '0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06)' }}
+                                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                                        transition={{ duration: 0.15 }}
+                                        className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl overflow-hidden z-50"
+                                        style={{ boxShadow: '0 8px 32px rgba(99,102,241,0.15), 0 2px 8px rgba(0,0,0,0.08)' }}
                                     >
-                                        <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50/60">
-                                            <h3 className="font-bold text-slate-900 text-sm" style={{ fontFamily: 'Manrope, sans-serif' }}>Notifications</h3>
+                                        {/* Header */}
+                                        <div className="px-4 py-3 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-indigo-50 to-violet-50">
+                                            <div className="flex items-center gap-2">
+                                                <HiOutlineBell className="w-4 h-4 text-indigo-500" />
+                                                <h3 className="font-bold text-slate-900 text-sm" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                                    Notifications
+                                                </h3>
+                                                {unreadCount > 0 && (
+                                                    <span className="text-[10px] font-bold bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full">
+                                                        {unreadCount} new
+                                                    </span>
+                                                )}
+                                            </div>
                                             {unreadCount > 0 && (
-                                                <button onClick={() => markAsRead()} className="text-xs text-indigo-600 hover:text-indigo-700 font-medium">
+                                                <button
+                                                    onClick={() => markAsRead()}
+                                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline"
+                                                >
                                                     Mark all read
                                                 </button>
                                             )}
                                         </div>
-                                        <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
-                                            {notifications.map(notif => (
-                                                <div
-                                                    key={notif.id}
-                                                    className={`p-3 rounded-xl transition ${notif.isRead ? 'opacity-60 hover:bg-slate-50' : 'bg-indigo-50/60 hover:bg-indigo-50'}`}
-                                                >
-                                                    <div className="flex justify-between items-start mb-0.5">
-                                                        <p className={`text-sm ${notif.isRead ? 'text-slate-700' : 'font-semibold text-slate-900'}`}>{notif.title}</p>
-                                                        {!notif.isRead && <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0" />}
-                                                    </div>
-                                                    <p className="text-xs text-slate-500">{notif.message}</p>
-                                                    {notif.link && (
-                                                        <a href={notif.link} onClick={() => markAsRead(notif.id)} className="text-xs text-indigo-600 mt-1.5 inline-block font-medium">
-                                                            View Details →
-                                                        </a>
-                                                    )}
+
+                                        {/* List */}
+                                        <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-50">
+                                            {notifications.length === 0 ? (
+                                                <div className="py-10 text-center">
+                                                    <HiOutlineBell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
+                                                    <p className="text-sm text-slate-400">All caught up!</p>
                                                 </div>
-                                            ))}
-                                            {notifications.length === 0 && (
-                                                <p className="p-4 text-center text-sm text-slate-400">All caught up! 🎉</p>
+                                            ) : (
+                                                notifications.map((notif) => (
+                                                    <button
+                                                        key={notif.id}
+                                                        onClick={() => handleNotifClick(notif)}
+                                                        className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors hover:bg-slate-50 ${!notif.isRead ? 'bg-indigo-50/40' : ''}`}
+                                                    >
+                                                        {/* Icon */}
+                                                        <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center mt-0.5 ${!notif.isRead ? 'bg-indigo-100' : 'bg-slate-100'}`}>
+                                                            {getNotifIcon(notif.title)}
+                                                        </div>
+
+                                                        {/* Content */}
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <p className={`text-sm leading-tight ${!notif.isRead ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>
+                                                                    {notif.title}
+                                                                </p>
+                                                                {!notif.isRead && (
+                                                                    <span className="flex-shrink-0 w-2 h-2 rounded-full bg-indigo-500 mt-1.5" />
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{notif.message}</p>
+                                                            <p className="text-[10px] text-slate-400 mt-1">{timeAgo(notif.createdAt)}</p>
+                                                        </div>
+                                                    </button>
+                                                ))
                                             )}
                                         </div>
                                     </motion.div>
                                 )}
-                            </div>
-                        )}
+                            </AnimatePresence>
+                        </div>
 
                         {/* Change Password */}
                         <motion.button
@@ -361,4 +435,3 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
         </>
     );
 }
-
