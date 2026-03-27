@@ -75,15 +75,19 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Accept optional GPS location from request body
-        let latitude, longitude, address;
+        // GPS location is required for check-out
+        let latitude: number, longitude: number, address: string | undefined;
         try {
             const body = await req.json();
             latitude = body.latitude;
             longitude = body.longitude;
             address = body.address;
         } catch {
-            // Unchanged if no location
+            return NextResponse.json({ error: 'Location is required to check out' }, { status: 400 });
+        }
+
+        if (latitude == null || longitude == null) {
+            return NextResponse.json({ error: 'Location is required to check out' }, { status: 400 });
         }
 
         // Proceed with checkout
@@ -91,7 +95,9 @@ export async function POST(req: NextRequest) {
             where: { id: attendance.id },
             data: {
                 checkOut: new Date(),
-                ...(latitude && longitude ? { checkOutLatitude: latitude, checkOutLongitude: longitude, checkOutAddress: address } : {}),
+                checkOutLatitude: latitude,
+                checkOutLongitude: longitude,
+                checkOutAddress: address,
             },
         });
 

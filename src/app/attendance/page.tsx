@@ -148,16 +148,16 @@ export default function AttendancePage() {
 
     const handleCheckIn = async () => {
         const location = await fetchLocation();
-        if (location) {
-            toast.success('Location acquired 📍');
-        } else {
-            toast.error('Location access denied or unavailable. Checking in without GPS...');
+        if (!location) {
+            toast.error('Location access is required to check in. Please enable GPS and try again.');
+            return;
         }
+        toast.success('Location acquired 📍');
 
         const res = await fetch('/api/attendance/checkin', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: location ? JSON.stringify(location) : JSON.stringify({}),
+            body: JSON.stringify(location),
         });
         const data = await res.json();
         if (res.ok) {
@@ -168,16 +168,16 @@ export default function AttendancePage() {
 
     const handleCheckOut = async () => {
         const location = await fetchLocation();
-        if (location) {
-            toast.success('Location acquired 📍');
-        } else {
-            toast.error('Location access denied or unavailable. Checking out without GPS...');
+        if (!location) {
+            toast.error('Location access is required to check out. Please enable GPS and try again.');
+            return;
         }
+        toast.success('Location acquired 📍');
 
         const res = await fetch('/api/attendance/checkout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: location ? JSON.stringify(location) : JSON.stringify({}),
+            body: JSON.stringify(location),
         });
         const data = await res.json();
         if (res.ok) {
@@ -285,7 +285,11 @@ export default function AttendancePage() {
                         </div>
 
                         <div className="relative z-10 flex flex-wrap gap-4 items-center">
-                            {todayAttendance ? (
+                            {role === 'ADMIN' ? (
+                                <div className="px-6 py-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-700 font-bold text-center">
+                                    Attendance tracking is for employees. Admins don't need to check in.
+                                </div>
+                            ) : todayAttendance ? (
                                 <>
                                     <div className="flex items-center gap-3 px-3 sm:px-5 py-3 sm:py-3.5 bg-white border border-slate-200 rounded-2xl shadow-sm">
                                         <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 flex items-center justify-center">

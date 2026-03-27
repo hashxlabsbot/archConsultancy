@@ -88,9 +88,39 @@ export default function DashboardPage() {
         } catch (e) { } finally { setLoading(false); }
     };
 
-    const handleCheckIn = async () => {
+    const fetchLocation = async (): Promise<{ latitude: number; longitude: number; address: string } | null> => {
+        if (!('geolocation' in navigator)) return null;
         try {
-            const res = await fetch('/api/attendance/checkin', { method: 'POST' });
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
+            });
+            const { latitude, longitude } = position.coords;
+            let address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+            try {
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                if (geoRes.ok) {
+                    const geoData = await geoRes.json();
+                    address = geoData.display_name || address;
+                }
+            } catch { }
+            return { latitude, longitude, address };
+        } catch {
+            return null;
+        }
+    };
+
+    const handleCheckIn = async () => {
+        const location = await fetchLocation();
+        if (!location) {
+            toast.error('Location access is required to check in. Please enable GPS and try again.');
+            return;
+        }
+        try {
+            const res = await fetch('/api/attendance/checkin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(location),
+            });
             const json = await res.json();
             if (res.ok) { toast.success('Checked in! Have a great day 🎉'); fetchDashboard(); }
             else toast.error(json.error);
@@ -98,8 +128,17 @@ export default function DashboardPage() {
     };
 
     const handleCheckOut = async () => {
+        const location = await fetchLocation();
+        if (!location) {
+            toast.error('Location access is required to check out. Please enable GPS and try again.');
+            return;
+        }
         try {
-            const res = await fetch('/api/attendance/checkout', { method: 'POST' });
+            const res = await fetch('/api/attendance/checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(location),
+            });
             const json = await res.json();
             if (res.ok) { toast.success('Checked out. See you tomorrow! 👋'); fetchDashboard(); }
             else toast.error(json.error || 'Checkout failed');

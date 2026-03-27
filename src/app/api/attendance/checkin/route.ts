@@ -30,15 +30,19 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Accept optional GPS location from request body
-        let latitude, longitude, address;
+        // GPS location is required for check-in
+        let latitude: number, longitude: number, address: string | undefined;
         try {
             const body = await req.json();
             latitude = body.latitude;
             longitude = body.longitude;
             address = body.address;
         } catch {
-            // No body sent — that's fine for non-GPS check-ins
+            return NextResponse.json({ error: 'Location is required to check in' }, { status: 400 });
+        }
+
+        if (latitude == null || longitude == null) {
+            return NextResponse.json({ error: 'Location is required to check in' }, { status: 400 });
         }
 
         const attendance = await prisma.attendance.create({
@@ -46,7 +50,9 @@ export async function POST(req: NextRequest) {
                 userId,
                 date: new Date(),
                 checkIn: new Date(),
-                ...(latitude && longitude ? { latitude, longitude, address } : {}),
+                latitude,
+                longitude,
+                address,
             },
         });
 

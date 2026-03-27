@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HiOutlineDocumentText, HiXMark } from 'react-icons/hi2';
+import { HiOutlineDocumentText, HiXMark, HiOutlineMapPin } from 'react-icons/hi2';
 import { getInitials, formatDate, formatTime } from '@/lib/utils';
 
 export default function AdminAttendancePage() {
@@ -158,6 +158,7 @@ export default function AdminAttendancePage() {
                                         <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Employee</th>
                                         <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Check In</th>
                                         <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Check Out</th>
+                                        <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Location (In/Out)</th>
                                         <th className="text-left text-sm text-slate-500 px-5 py-3 font-medium">Duration</th>
                                         <th className="text-center text-sm text-slate-500 px-5 py-3 font-medium">Daily Report</th>
                                     </tr>
@@ -183,6 +184,36 @@ export default function AdminAttendancePage() {
                                                 </td>
                                                 <td className="px-5 py-3 text-sm text-slate-600">{formatTime(record.checkIn)}</td>
                                                 <td className="px-5 py-3 text-sm text-slate-600">{record.checkOut ? formatTime(record.checkOut) : '—'}</td>
+                                                <td className="px-5 py-3">
+                                                    <div className="flex flex-col gap-1">
+                                                        {record.latitude && record.longitude ? (
+                                                            <a
+                                                                href={`https://www.google.com/maps?q=${record.latitude},${record.longitude}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 w-fit"
+                                                                title={record.address || 'Check-in Location'}
+                                                            >
+                                                                <HiOutlineMapPin className="w-3 h-3" /> In: {record.address ? (record.address.length > 20 ? record.address.substring(0, 20) + '...' : record.address) : 'Pinned'}
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-[10px] text-slate-400 font-medium italic">No In-GPS</span>
+                                                        )}
+                                                        {record.checkOutLatitude && record.checkOutLongitude ? (
+                                                            <a
+                                                                href={`https://www.google.com/maps?q=${record.checkOutLatitude},${record.checkOutLongitude}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 w-fit"
+                                                                title={record.checkOutAddress || 'Check-out Location'}
+                                                            >
+                                                                <HiOutlineMapPin className="w-3 h-3" /> Out: {record.checkOutAddress ? (record.checkOutAddress.length > 20 ? record.checkOutAddress.substring(0, 20) + '...' : record.checkOutAddress) : 'Pinned'}
+                                                            </a>
+                                                        ) : record.checkOut ? (
+                                                            <span className="text-[10px] text-slate-400 font-medium italic">No Out-GPS</span>
+                                                        ) : null}
+                                                    </div>
+                                                </td>
                                                 <td className="px-5 py-3 text-sm text-slate-600">{record.duration}</td>
                                                 <td className="px-5 py-3 text-center">
                                                     {record.reports && record.reports.length > 0 ? (
