@@ -78,6 +78,8 @@ export async function GET(req: NextRequest) {
         }
         if (role) where.role = role;
 
+        const isPrivileged = session.user.role === 'ADMIN' || session.user.role === 'MANAGER';
+
         const users = await prisma.user.findMany({
             where,
             select: {
@@ -89,11 +91,13 @@ export async function GET(req: NextRequest) {
                 skills: true,
                 avatar: true,
                 designation: true,
-                fathersName: true,
                 joiningDate: true,
-                panCard: true,
-                aadharNo: true,
                 createdAt: true,
+                ...(isPrivileged ? {
+                    fathersName: true,
+                    panCard: true,
+                    aadharNo: true,
+                } : {})
             },
             orderBy: { name: 'asc' },
         });

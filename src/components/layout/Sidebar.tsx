@@ -33,7 +33,7 @@ const menuItems = [
     { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
     { path: '/admin/salary', label: 'Salary Setup', icon: HiOutlineCurrencyRupee, roles: ['ADMIN'] },
     { path: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, roles: ['MANAGER', 'EMPLOYEE'] },
-    { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', 'MANAGER'] },
+    { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
     { path: '/profile', label: 'My Profile', icon: HiOutlineUserCircle, roles: ['MANAGER', 'EMPLOYEE'] },
     { path: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
     { path: '/admin', label: 'Settings', icon: HiOutlineCog6Tooth, roles: ['ADMIN'] },
