@@ -3,6 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
     HiOutlineBell,
     HiOutlineArrowRightOnRectangle,
@@ -10,6 +11,9 @@ import {
     HiOutlineKey,
     HiXMark,
     HiBars3,
+    HiOutlineClock,
+    HiOutlineDocumentText,
+    HiOutlineCheckCircle,
 } from 'react-icons/hi2';
 import { getInitials, getRoleBadgeColor } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -21,8 +25,7 @@ interface NavbarProps {
 export default function Navbar({ onMenuClick }: NavbarProps) {
     const { data: session } = useSession();
     const [canLogout, setCanLogout] = useState(true);
-    const [todayReport, setTodayReport] = useState<boolean>(false);
-    const [checkingStatus, setCheckingStatus] = useState(false);
+    const [attendanceState, setAttendanceState] = useState({ checkedIn: false, reportSubmitted: false, checkedOut: false });
 
     // Notifications state
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -37,9 +40,9 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     const user = session?.user;
     const role = (user as any)?.role || 'EMPLOYEE';
 
-    // Check if user has submitted today's report (for checkout guard)
+    // Check if user has submitted today's report (for checkout guard and quick actions)
     useEffect(() => {
-        if (user && role === 'EMPLOYEE') {
+        if (user && role !== 'ADMIN') {
             checkTodayStatus();
         }
     }, [user]);
@@ -49,12 +52,21 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
             const res = await fetch('/api/attendance/today');
             if (res.ok) {
                 const data = await res.json();
-                if (data.attendance && !data.attendance.reportSubmitted && data.attendance.checkIn && !data.attendance.checkOut) {
-                    setCanLogout(false);
-                    setTodayReport(false);
-                } else {
+                const att = data.attendance;
+                if (!att) {
+                    setAttendanceState({ checkedIn: false, reportSubmitted: false, checkedOut: false });
                     setCanLogout(true);
-                    setTodayReport(data.attendance?.reportSubmitted || false);
+                } else {
+                    setAttendanceState({
+                        checkedIn: !!att.checkIn,
+                        reportSubmitted: !!att.reportSubmitted,
+                        checkedOut: !!att.checkOut
+                    });
+                    if (att.checkIn && !att.reportSubmitted && !att.checkOut && role === 'EMPLOYEE') {
+                        setCanLogout(false);
+                    } else {
+                        setCanLogout(true);
+                    }
                 }
             }
         } catch (error) {
@@ -168,16 +180,39 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                     </div>
 
                     {/* Right side */}
-                    <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        {/* Attendance Quick Actions */}
+                        {role !== 'ADMIN' && (
+                            <div className="hidden sm:flex items-center">
+                                {!attendanceState.checkedIn ? (
+                                    <Link href="/attendance" className="btn-primary py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors">
+                                        <HiOutlineClock className="w-4 h-4" /> Check In
+                                    </Link>
+                                ) : !attendanceState.reportSubmitted ? (
+                                    <Link href={role === 'SITE_ENGINEER' ? '/site-logs' : '/reports'} className="btn-primary py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors">
+                                        <HiOutlineDocumentText className="w-4 h-4" /> Submit Report
+                                    </Link>
+                                ) : !attendanceState.checkedOut ? (
+                                    <Link href="/attendance" className="btn-primary py-1.5 px-3 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors">
+                                        <HiOutlineClock className="w-4 h-4" /> Check Out
+                                    </Link>
+                                ) : (
+                                    <span className="py-1.5 px-3 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-lg border border-emerald-200 flex items-center gap-1.5 shadow-sm">
+                                        <HiOutlineCheckCircle className="w-4 h-4" /> Shift Completed
+                                    </span>
+                                )}
+                            </div>
+                        )}
+
                         {/* Report warning */}
                         {!canLogout && role === 'EMPLOYEE' && (
                             <motion.div
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 font-medium"
+                                className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-700 font-medium whitespace-nowrap"
                             >
                                 <HiOutlineExclamationTriangle className="w-3.5 h-3.5" />
-                                <span>Report pending</span>
+                                <span>Report required</span>
                             </motion.div>
                         )}
 
