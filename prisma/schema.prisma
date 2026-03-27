@@ -55,6 +55,9 @@ model Attendance {
   latitude         Float?
   longitude        Float?
   address          String?
+  checkOutLatitude  Float?
+  checkOutLongitude Float?
+  checkOutAddress   String?
   reportSubmitted  Boolean   @default(false)
   checkoutAttempts Int       @default(0)
   createdAt        DateTime  @default(now())

@@ -75,10 +75,24 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Accept optional GPS location from request body
+        let latitude, longitude, address;
+        try {
+            const body = await req.json();
+            latitude = body.latitude;
+            longitude = body.longitude;
+            address = body.address;
+        } catch {
+            // Unchanged if no location
+        }
+
         // Proceed with checkout
         const updated = await prisma.attendance.update({
             where: { id: attendance.id },
-            data: { checkOut: new Date() },
+            data: {
+                checkOut: new Date(),
+                ...(latitude && longitude ? { checkOutLatitude: latitude, checkOutLongitude: longitude, checkOutAddress: address } : {}),
+            },
         });
 
         return NextResponse.json({ attendance: updated });

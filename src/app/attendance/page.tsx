@@ -125,44 +125,40 @@ export default function AttendancePage() {
         }
     };
 
-    const handleCheckIn = async () => {
-        // For site engineers, capture GPS location first
-        if (role === 'SITE_ENGINEER' && 'geolocation' in navigator) {
+    const fetchLocation = async (): Promise<{ latitude: number, longitude: number, address: string } | null> => {
+        if (!('geolocation' in navigator)) return null;
+        try {
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
+            });
+            const { latitude, longitude } = position.coords;
+            let address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
             try {
-                const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                    navigator.geolocation.getCurrentPosition(resolve, reject, {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                    });
-                });
-                const { latitude, longitude } = position.coords;
-                // Reverse geocode (simple approach)
-                let address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-                try {
-                    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-                    if (geoRes.ok) {
-                        const geoData = await geoRes.json();
-                        address = geoData.display_name || address;
-                    }
-                } catch { }
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                if (geoRes.ok) {
+                    const geoData = await geoRes.json();
+                    address = geoData.display_name || address;
+                }
+            } catch { }
+            return { latitude, longitude, address };
+        } catch {
+            return null; // Denied or failed
+        }
+    };
 
-                const res = await fetch('/api/attendance/checkin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ latitude, longitude, address }),
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    toast.success('Checked In with GPS 📍🚀');
-                    fetchData();
-                } else toast.error(data.error);
-                return;
-            } catch (err) {
-                toast.error('Location access denied. Checking in without GPS...');
-            }
+    const handleCheckIn = async () => {
+        const location = await fetchLocation();
+        if (location) {
+            toast.success('Location acquired 📍');
+        } else {
+            toast.error('Location access denied or unavailable. Checking in without GPS...');
         }
 
-        const res = await fetch('/api/attendance/checkin', { method: 'POST' });
+        const res = await fetch('/api/attendance/checkin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: location ? JSON.stringify(location) : JSON.stringify({}),
+        });
         const data = await res.json();
         if (res.ok) {
             toast.success('Successfully Checked In 🚀');
@@ -171,7 +167,18 @@ export default function AttendancePage() {
     };
 
     const handleCheckOut = async () => {
-        const res = await fetch('/api/attendance/checkout', { method: 'POST' });
+        const location = await fetchLocation();
+        if (location) {
+            toast.success('Location acquired 📍');
+        } else {
+            toast.error('Location access denied or unavailable. Checking out without GPS...');
+        }
+
+        const res = await fetch('/api/attendance/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: location ? JSON.stringify(location) : JSON.stringify({}),
+        });
         const data = await res.json();
         if (res.ok) {
             toast.success('Successfully Checked Out 🌙');
