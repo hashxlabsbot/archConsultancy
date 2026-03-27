@@ -59,12 +59,42 @@ export default function AdminPage() {
 
     const handleUserSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Validations
+        if (!formData.name.trim()) { toast.error('Full Name is required'); return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { toast.error('Invalid email format'); return; }
+
+        if (formData.phone && !/^(?:\+?91[\-\s]?)?[6789]\d{9}$/.test(formData.phone)) {
+            toast.error('Invalid Indian mobile number'); return;
+        }
+
+        if (formData.panCard && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/i.test(formData.panCard.replace(/\s/g, ''))) {
+            toast.error('Invalid PAN Card format. Ex: ABCDE1234F'); return;
+        }
+
+        if (formData.aadharNo && !/^\d{4}[\-\s]?\d{4}[\-\s]?\d{4}$/.test(formData.aadharNo)) {
+            toast.error('Invalid Aadhar Number (12 digits required)'); return;
+        }
+
+        if (modalMode === 'add' && formData.password.length < 6) {
+            toast.error('Password must be at least 6 characters'); return;
+        }
+        if (modalMode === 'edit' && formData.password && formData.password.length < 6) {
+            toast.error('New password must be at least 6 characters'); return;
+        }
+
+        // Format PAN card to uppercase before sending
+        const payload = {
+            ...formData,
+            panCard: formData.panCard ? formData.panCard.replace(/\s/g, '').toUpperCase() : ''
+        };
+
         try {
             if (modalMode === 'add') {
                 const res = await fetch('/api/users', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(payload)
                 });
                 if (!res.ok) {
                     const errorJson = await res.json();
@@ -75,7 +105,7 @@ export default function AdminPage() {
                 const res = await fetch(`/api/users/${selectedUser.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(payload)
                 });
                 if (!res.ok) {
                     const errorJson = await res.json();
@@ -203,6 +233,7 @@ export default function AdminPage() {
                                         <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="input-field">
                                             <option value="EMPLOYEE">Employee</option>
                                             <option value="MANAGER">Manager</option>
+                                            <option value="SITE_ENGINEER">Site Engineer</option>
                                             <option value="ADMIN">Admin</option>
                                         </select>
                                     </div>

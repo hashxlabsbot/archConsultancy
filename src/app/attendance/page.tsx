@@ -126,6 +126,42 @@ export default function AttendancePage() {
     };
 
     const handleCheckIn = async () => {
+        // For site engineers, capture GPS location first
+        if (role === 'SITE_ENGINEER' && 'geolocation' in navigator) {
+            try {
+                const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject, {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                    });
+                });
+                const { latitude, longitude } = position.coords;
+                // Reverse geocode (simple approach)
+                let address = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+                try {
+                    const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                    if (geoRes.ok) {
+                        const geoData = await geoRes.json();
+                        address = geoData.display_name || address;
+                    }
+                } catch { }
+
+                const res = await fetch('/api/attendance/checkin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ latitude, longitude, address }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    toast.success('Checked In with GPS 📍🚀');
+                    fetchData();
+                } else toast.error(data.error);
+                return;
+            } catch (err) {
+                toast.error('Location access denied. Checking in without GPS...');
+            }
+        }
+
         const res = await fetch('/api/attendance/checkin', { method: 'POST' });
         const data = await res.json();
         if (res.ok) {

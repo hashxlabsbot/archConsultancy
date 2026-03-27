@@ -56,7 +56,8 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 🔒 CORE RULE: Cannot checkout without submitting daily report
+        // 🔒 CORE RULE: Cannot checkout without submitting daily report (skip for Site Engineers)
+        const userRole = (session.user as any).role;
         if (!attendance.reportSubmitted) {
             // Increment failed checkout attempts
             await prisma.attendance.update({

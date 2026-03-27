@@ -11,6 +11,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const userRole = (session.user as any).role;
+        if (userRole === 'ADMIN') {
+            return NextResponse.json({ error: 'Admin users cannot apply for leaves' }, { status: 403 });
+        }
+
         const userId = (session.user as any).id;
         const { type, startDate, endDate, reason } = await req.json();
 
@@ -49,7 +54,7 @@ export async function GET(req: NextRequest) {
         const status = searchParams.get('status');
 
         const where: any = {};
-        if (role === 'EMPLOYEE') where.userId = userId;
+        if (role === 'EMPLOYEE' || role === 'SITE_ENGINEER') where.userId = userId;
         if (status) where.status = status;
 
         const leaves = await prisma.leave.findMany({

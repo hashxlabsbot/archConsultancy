@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
         let myAttendance = null;
         let myLeaveBalance = null;
 
-        if (role === 'EMPLOYEE') {
+        if (role === 'EMPLOYEE' || role === 'SITE_ENGINEER') {
             myAttendance = await prisma.attendance.findFirst({
                 where: { userId, date: { gte: today } },
                 include: { reports: true },

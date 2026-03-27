@@ -37,7 +37,7 @@ export default function LeavesPage() {
                 if (data.balance) setBalance(data.balance);
             }
 
-            const slEndpoint = role === 'EMPLOYEE' ? '/api/attendance/short-leaves' : '/api/admin/short-leaves';
+            const slEndpoint = (role === 'EMPLOYEE' || role === 'SITE_ENGINEER') ? '/api/attendance/short-leaves' : '/api/admin/short-leaves';
             const slRes = await fetch(slEndpoint);
             if (slRes.ok) {
                 const slData = await slRes.json();
@@ -121,35 +121,39 @@ export default function LeavesPage() {
                         <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}>
                             Leave Management
                         </h1>
-                        <p className="text-slate-500 text-sm mt-1">Track balances and submit time-off requests.</p>
+                        <p className="text-slate-500 text-sm mt-1">{role === 'ADMIN' ? 'Review and manage employee leave requests.' : 'Track balances and submit time-off requests.'}</p>
                     </div>
-                    <button onClick={() => setShowForm(true)} className="btn-primary flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 shadow-glow-indigo text-sm">
-                        <HiOutlinePlus className="w-4 h-4 sm:w-5 sm:h-5" /> Apply for Leave
-                    </button>
+                    {role !== 'ADMIN' && (
+                        <button onClick={() => setShowForm(true)} className="btn-primary flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 shadow-glow-indigo text-sm">
+                            <HiOutlinePlus className="w-4 h-4 sm:w-5 sm:h-5" /> Apply for Leave
+                        </button>
+                    )}
                 </div>
 
-                {/* ── Balance Cards ── */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                    {statCards.map((stat, idx) => (
-                        <motion.div
-                            key={stat.label}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: idx * 0.1, duration: 0.4 }}
-                            className="glass-card p-6 flex items-start justify-between"
-                        >
-                            <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{stat.label}</p>
-                                <p className="text-2xl sm:text-4xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    {stat.value}
-                                </p>
-                            </div>
-                            <div className={`${stat.iconClass} w-12 h-12 shadow-sm`}>
-                                <stat.icon className="w-6 h-6 text-white" />
-                            </div>
-                        </motion.div>
-                    ))}
-                </div>
+                {/* ── Balance Cards (hidden for Admin) ── */}
+                {role !== 'ADMIN' && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                        {statCards.map((stat, idx) => (
+                            <motion.div
+                                key={stat.label}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: idx * 0.1, duration: 0.4 }}
+                                className="glass-card p-6 flex items-start justify-between"
+                            >
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{stat.label}</p>
+                                    <p className="text-2xl sm:text-4xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                        {stat.value}
+                                    </p>
+                                </div>
+                                <div className={`${stat.iconClass} w-12 h-12 shadow-sm`}>
+                                    <stat.icon className="w-6 h-6 text-white" />
+                                </div>
+                            </motion.div>
+                        ))}
+                    </div>
+                )}
 
                 {/* ── Leave Requests Table ── */}
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card overflow-hidden">
@@ -163,7 +167,7 @@ export default function LeavesPage() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-50/50 border-b border-slate-100/80">
-                                    {(role !== 'EMPLOYEE') && <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Employee</th>}
+                                    {(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') && <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Employee</th>}
                                     <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Type</th>
                                     <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Duration</th>
                                     <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Reason</th>
@@ -174,7 +178,7 @@ export default function LeavesPage() {
                             <tbody className="divide-y divide-slate-100/80">
                                 {leaves.map((leave) => (
                                     <tr key={leave.id} className="hover:bg-indigo-50/30 transition-colors group">
-                                        {(role !== 'EMPLOYEE') && (
+                                        {(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') && (
                                             <td className="px-6 py-4">
                                                 <span className="text-sm font-bold text-slate-900">{leave.user?.name}</span>
                                             </td>
@@ -216,7 +220,7 @@ export default function LeavesPage() {
                                 ))}
                                 {leaves.length === 0 && (
                                     <tr>
-                                        <td colSpan={role !== 'EMPLOYEE' ? 6 : 5} className="px-6 py-12 text-center text-slate-400">
+                                        <td colSpan={(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') ? 6 : 5} className="px-6 py-12 text-center text-slate-400">
                                             <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3">
                                                 <HiOutlineCalendarDays className="w-6 h-6 text-slate-300" />
                                             </div>
@@ -241,7 +245,7 @@ export default function LeavesPage() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-amber-50/20 border-b border-amber-100/50">
-                                    {(role !== 'EMPLOYEE') && <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Employee</th>}
+                                    {(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') && <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Employee</th>}
                                     <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Date</th>
                                     <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Duration</th>
                                     <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Reason</th>
@@ -252,7 +256,7 @@ export default function LeavesPage() {
                             <tbody className="divide-y divide-amber-100/30">
                                 {shortLeaves.map((sl) => (
                                     <tr key={sl.id} className="hover:bg-amber-50/50 transition-colors group">
-                                        {(role !== 'EMPLOYEE') && (
+                                        {(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') && (
                                             <td className="px-6 py-4">
                                                 <span className="text-sm font-bold text-slate-900">{sl.user?.name}</span>
                                             </td>
@@ -283,7 +287,7 @@ export default function LeavesPage() {
                                 ))}
                                 {shortLeaves.length === 0 && (
                                     <tr>
-                                        <td colSpan={role !== 'EMPLOYEE' ? 6 : 5} className="px-6 py-12 text-center text-amber-800/40">
+                                        <td colSpan={(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') ? 6 : 5} className="px-6 py-12 text-center text-amber-800/40">
                                             No short leave requests found
                                         </td>
                                     </tr>

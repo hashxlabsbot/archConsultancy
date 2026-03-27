@@ -15,6 +15,7 @@ import {
     HiOutlineMapPin,
     HiOutlineBanknotes,
     HiOutlineArrowUpRight,
+    HiOutlineWrenchScrewdriver,
 } from 'react-icons/hi2';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import toast from 'react-hot-toast';
@@ -106,14 +107,14 @@ export default function DashboardPage() {
     };
 
     const statCards = [
-        {
+        ...(role !== 'SITE_ENGINEER' ? [{
             label: 'Total Employees',
             value: data?.stats.totalEmployees ?? '—',
             icon: HiOutlineUsers,
             iconClass: 'icon-sq-indigo',
             accent: '#6366f1',
             bg: 'from-indigo-50 to-indigo-100/50',
-        },
+        }] : []),
         {
             label: 'Active Projects',
             value: data?.stats.activeProjects ?? '—',
@@ -122,14 +123,14 @@ export default function DashboardPage() {
             accent: '#0ea5e9',
             bg: 'from-sky-50 to-sky-100/50',
         },
-        {
+        ...(role !== 'SITE_ENGINEER' ? [{
             label: "Today's Attendance",
             value: data?.stats.todayAttendance ?? '—',
             icon: HiOutlineClock,
             iconClass: 'icon-sq-emerald',
             accent: '#10b981',
             bg: 'from-emerald-50 to-emerald-100/50',
-        },
+        }] : []),
         {
             label: 'Pending Leaves',
             value: data?.stats.pendingLeaves ?? '—',
@@ -140,22 +141,29 @@ export default function DashboardPage() {
         },
     ];
 
-    const quickActions = role !== 'ADMIN'
+    const quickActions = role === 'SITE_ENGINEER'
         ? [
-            { href: '/reports/new', label: 'Submit Report', icon: HiOutlineDocumentText, iconClass: 'icon-sq-indigo' },
             { href: '/attendance', label: 'Attendance', icon: HiOutlineClock, iconClass: 'icon-sq-sky' },
+            { href: '/site-logs', label: 'Daily Site Log', icon: HiOutlineWrenchScrewdriver, iconClass: 'icon-sq-orange' },
             { href: '/leaves', label: 'Apply Leave', icon: HiOutlineCalendarDays, iconClass: 'icon-sq-emerald' },
-            { href: '/site-visits', label: 'Site Visits', icon: HiOutlineMapPin, iconClass: 'icon-sq-violet' },
-            { href: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, iconClass: 'icon-sq-amber' },
-            { href: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, iconClass: 'icon-sq-rose' },
         ]
-        : [
-            { href: '/admin', label: 'Manage Users', icon: HiOutlineUsers, iconClass: 'icon-sq-indigo' },
-            { href: '/admin-attendance', label: 'Attendance', icon: HiOutlineClock, iconClass: 'icon-sq-sky' },
-            { href: '/leaves', label: 'Leave Approvals', icon: HiOutlineCalendarDays, iconClass: 'icon-sq-emerald' },
-            { href: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, iconClass: 'icon-sq-amber' },
-            { href: '/admin/salary', label: 'Salary Setup', icon: HiOutlineBanknotes, iconClass: 'icon-sq-violet' },
-        ];
+        : role !== 'ADMIN'
+            ? [
+                { href: '/reports/new', label: 'Submit Report', icon: HiOutlineDocumentText, iconClass: 'icon-sq-indigo' },
+                { href: '/attendance', label: 'Attendance', icon: HiOutlineClock, iconClass: 'icon-sq-sky' },
+                { href: '/leaves', label: 'Apply Leave', icon: HiOutlineCalendarDays, iconClass: 'icon-sq-emerald' },
+                { href: '/site-visits', label: 'Site Visits', icon: HiOutlineMapPin, iconClass: 'icon-sq-violet' },
+                { href: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, iconClass: 'icon-sq-amber' },
+                { href: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, iconClass: 'icon-sq-rose' },
+            ]
+            : [
+                { href: '/admin', label: 'Manage Users', icon: HiOutlineUsers, iconClass: 'icon-sq-indigo' },
+                { href: '/admin-attendance', label: 'Attendance', icon: HiOutlineClock, iconClass: 'icon-sq-sky' },
+                { href: '/leaves', label: 'Leave Approvals', icon: HiOutlineCalendarDays, iconClass: 'icon-sq-emerald' },
+                { href: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, iconClass: 'icon-sq-amber' },
+                { href: '/admin/salary', label: 'Salary Setup', icon: HiOutlineBanknotes, iconClass: 'icon-sq-violet' },
+                { href: '/site-logs', label: 'Site Logs', icon: HiOutlineWrenchScrewdriver, iconClass: 'icon-sq-orange' },
+            ];
 
     if (loading) {
         return (
@@ -204,7 +212,7 @@ export default function DashboardPage() {
                 </motion.div>
 
                 {/* ── STAT CARDS ── */}
-                <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <motion.div variants={itemVariants} className={`grid grid-cols-1 sm:grid-cols-2 ${statCards.length > 2 ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-4`}>
                     {statCards.map((stat, idx) => (
                         <motion.div
                             key={stat.label}
@@ -230,8 +238,8 @@ export default function DashboardPage() {
                     ))}
                 </motion.div>
 
-                {/* ── EMPLOYEE CARDS: attendance + leave ── */}
-                {role !== 'ADMIN' && (
+                {/* ── EMPLOYEE/SITE_ENGINEER CARDS: attendance + leave ── */}
+                {(role !== 'ADMIN' && role !== 'SITE_ENGINEER') && (
                     <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         {/* Today's Attendance */}
                         <div className="glass-card p-6">
@@ -292,6 +300,122 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Leave Balance */}
+                        <div className="glass-card p-6">
+                            <div className="flex items-center justify-between mb-5">
+                                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                    Leave Balance
+                                </h3>
+                                <div className="icon-sq-violet w-9 h-9 rounded-xl">
+                                    <HiOutlineCalendarDays className="w-4 h-4 text-white" />
+                                </div>
+                            </div>
+                            {data?.myLeaveBalance ? (
+                                <div className="flex items-center gap-6">
+                                    <div className="relative flex-shrink-0">
+                                        <DonutRing used={data.myLeaveBalance.used} total={data.myLeaveBalance.total} size={96} />
+                                        <div className="absolute inset-0 flex items-center justify-center flex-col">
+                                            <span className="text-xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                                {data.myLeaveBalance.remaining}
+                                            </span>
+                                            <span className="text-[9px] text-slate-400 font-medium">left</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex-1 space-y-3">
+                                        <div>
+                                            <div className="flex justify-between text-sm mb-1">
+                                                <span className="text-slate-500">Total Annual</span>
+                                                <span className="font-bold text-slate-900">{data.myLeaveBalance.total}</span>
+                                            </div>
+                                        </div>
+                                        <div className="p-3 bg-amber-50 rounded-xl flex justify-between">
+                                            <span className="text-xs text-amber-700 font-medium">Used</span>
+                                            <span className="text-xs font-bold text-amber-700">{data.myLeaveBalance.used}</span>
+                                        </div>
+                                        <div className="p-3 bg-emerald-50 rounded-xl flex justify-between">
+                                            <span className="text-xs text-emerald-700 font-medium">Remaining</span>
+                                            <span className="text-xs font-bold text-emerald-700">{data.myLeaveBalance.remaining}</span>
+                                        </div>
+                                        <Link href="/leaves" className="btn-secondary text-sm text-center block w-full py-2">
+                                            Apply for Leave
+                                        </Link>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-slate-400 text-sm">Leave data unavailable</p>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+
+                {/* ── SITE_ENGINEER: just attendance card ── */}
+                {role === 'SITE_ENGINEER' && (
+                    <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                        <div className="glass-card p-6">
+                            <div className="flex items-center justify-between mb-5">
+                                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                    Today's Attendance
+                                </h3>
+                                <div className="icon-sq-sky w-9 h-9 rounded-xl">
+                                    <HiOutlineClock className="w-4 h-4 text-white" />
+                                </div>
+                            </div>
+                            {data?.myAttendance ? (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-xl">
+                                        <span className="text-sm text-emerald-700 font-medium">Check-in</span>
+                                        <span className="text-sm font-bold text-emerald-600">{formatTime(data.myAttendance.checkIn)}</span>
+                                    </div>
+                                    {data.myAttendance.latitude && (
+                                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-xl">
+                                            <HiOutlineMapPin className="w-4 h-4 text-blue-500" />
+                                            <span className="text-xs text-blue-700 font-medium">
+                                                {data.myAttendance.address || `${data.myAttendance.latitude.toFixed(4)}, ${data.myAttendance.longitude.toFixed(4)}`}
+                                            </span>
+                                        </div>
+                                    )}
+                                    {data.myAttendance.checkOut ? (
+                                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                                            <span className="text-sm text-slate-600 font-medium">Check-out</span>
+                                            <span className="text-sm font-bold text-slate-700">{formatTime(data.myAttendance.checkOut)}</span>
+                                        </div>
+                                    ) : (
+                                        <button
+                                            onClick={handleCheckOut}
+                                            disabled={!data.myAttendance.reportSubmitted}
+                                            className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${data.myAttendance.reportSubmitted
+                                                ? 'btn-danger'
+                                                : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                                        >
+                                            {data.myAttendance.reportSubmitted ? 'Check Out Now' : '🔒 Submit Site Log First'}
+                                        </button>
+                                    )}
+                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                                        <span className="text-sm text-slate-500">Daily Site Log</span>
+                                        {data.myAttendance.reportSubmitted ? (
+                                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600 bg-emerald-100 px-2.5 py-1 rounded-full">
+                                                <HiOutlineCheckCircle className="w-3.5 h-3.5" /> Submitted
+                                            </span>
+                                        ) : (
+                                            <Link href="/site-logs" className="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 bg-amber-100 px-2.5 py-1 rounded-full hover:bg-amber-200 transition-colors">
+                                                <HiOutlineExclamationTriangle className="w-3.5 h-3.5" /> Pending
+                                            </Link>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-6">
+                                    <div className="w-14 h-14 rounded-2xl bg-indigo-100 flex items-center justify-center mx-auto mb-3">
+                                        <HiOutlineClock className="w-7 h-7 text-indigo-500" />
+                                    </div>
+                                    <p className="text-slate-500 text-sm mb-4">You haven't checked in yet today</p>
+                                    <button onClick={handleCheckIn} className="btn-primary px-8">
+                                        Check In Now
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Leave Balance for SITE_ENGINEER */}
                         <div className="glass-card p-6">
                             <div className="flex items-center justify-between mb-5">
                                 <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>

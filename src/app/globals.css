@@ -390,6 +390,12 @@
     background: linear-gradient(135deg, #f43f5e, #e11d48);
     box-shadow: 0 4px 12px rgba(244, 63, 94, 0.35);
   }
+
+  .icon-sq-orange {
+    @apply w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+  }
 }
 
 @layer utilities {

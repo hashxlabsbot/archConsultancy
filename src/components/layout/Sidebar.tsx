@@ -19,16 +19,18 @@ import {
     HiOutlineUserCircle,
     HiOutlineArrowRightOnRectangle,
     HiOutlineXMark,
+    HiOutlineWrenchScrewdriver,
 } from 'react-icons/hi2';
 import { useState } from 'react';
 
 const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: HiOutlineHome, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
+    { path: '/dashboard', label: 'Dashboard', icon: HiOutlineHome, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
     { path: '/admin-attendance', label: 'Attendance & Reports', icon: HiOutlineClock, roles: ['ADMIN'] },
-    { path: '/attendance', label: 'Attendance', icon: HiOutlineClock, roles: ['MANAGER', 'EMPLOYEE'] },
+    { path: '/attendance', label: 'Attendance', icon: HiOutlineClock, roles: ['MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
+    { path: '/site-logs', label: 'Daily Site Log', icon: HiOutlineWrenchScrewdriver, roles: ['ADMIN', 'SITE_ENGINEER', 'EMPLOYEE'] },
     { path: '/site-visits', label: 'Site Visits', icon: HiOutlineMapPin, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
     { path: '/reports', label: 'Daily Reports', icon: HiOutlineDocumentText, roles: ['MANAGER', 'EMPLOYEE'] },
-    { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
+    { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
     { path: '/admin/salary', label: 'Salary Setup', icon: HiOutlineCurrencyRupee, roles: ['ADMIN'] },
     { path: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, roles: ['MANAGER', 'EMPLOYEE'] },
     { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', 'MANAGER'] },
@@ -56,6 +58,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
         ADMIN: 'bg-violet-100 text-violet-700',
         MANAGER: 'bg-sky-100 text-sky-700',
         EMPLOYEE: 'bg-emerald-100 text-emerald-700',
+        SITE_ENGINEER: 'bg-orange-100 text-orange-700',
     };
 
     const handleNavClick = () => {
