@@ -45,6 +45,7 @@ model User {
   dailySiteLogs            DailySiteLog[]
   employeeOfMonthAwards    EmployeeOfTheMonth[]   @relation("EOMWinner")
   employeeOfMonthGranted   EmployeeOfTheMonth[]   @relation("EOMGrantedBy")
+  notices                  Notice[]               @relation("NoticeAuthor")
 }
 
 model EmployeeOfTheMonth {
@@ -280,6 +281,18 @@ model SalarySlip {
   updatedAt           DateTime @updatedAt
   
   @@unique([userId, month, year])
+}
+
+model Notice {
+  id           String   @id @default(cuid())
+  title        String
+  message      String
+  priority     String   @default("NORMAL") // NORMAL, URGENT, INFO
+  postedById   String
+  postedBy     User     @relation("NoticeAuthor", fields: [postedById], references: [id])
+  whatsappSent Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model DailySiteLog {

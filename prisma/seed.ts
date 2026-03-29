@@ -7,6 +7,7 @@ async function main() {
     console.log('🧹 Clearing ALL existing data...\n');
 
     // Delete in dependency order (children first)
+    await prisma.notice.deleteMany();
     await prisma.employeeOfTheMonth.deleteMany();
     await prisma.salarySlip.deleteMany();
     await prisma.salaryStructure.deleteMany();

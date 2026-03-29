@@ -21,6 +21,7 @@ import {
     HiOutlineXMark,
     HiOutlineWrenchScrewdriver,
     HiOutlineTrophy,
+    HiOutlineMegaphone,
 } from 'react-icons/hi2';
 import { useState } from 'react';
 
@@ -37,6 +38,7 @@ const menuItems = [
     { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
     { path: '/profile', label: 'My Profile', icon: HiOutlineUserCircle, roles: ['MANAGER', 'EMPLOYEE'] },
     { path: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
+    { path: '/notice-board', label: 'Notice Board', icon: HiOutlineMegaphone, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
     { path: '/employee-of-month', label: 'Employee of Month', icon: HiOutlineTrophy, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
     { path: '/admin', label: 'Settings', icon: HiOutlineCog6Tooth, roles: ['ADMIN'] },
 ];
