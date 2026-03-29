@@ -155,7 +155,7 @@ export default function EmployeeOfTheMonthPage() {
                 animate="show"
             >
                 {/* Header */}
-                <motion.div variants={itemVariants} className="flex items-center justify-between">
+                <motion.div variants={itemVariants} className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
                             Employee of the Month
@@ -167,7 +167,7 @@ export default function EmployeeOfTheMonthPage() {
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
                             onClick={openModal}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white flex-shrink-0"
                             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}
                         >
                             <HiOutlinePlusCircle className="w-5 h-5" />
@@ -265,7 +265,7 @@ export default function EmployeeOfTheMonthPage() {
                                         <motion.div
                                             key={record.id}
                                             variants={itemVariants}
-                                            className="glass-card p-4 rounded-2xl relative group"
+                                            className="glass-card p-4 rounded-2xl relative"
                                         >
                                             <div className="flex items-center gap-3 mb-3">
                                                 <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
@@ -278,7 +278,17 @@ export default function EmployeeOfTheMonthPage() {
                                                         {record.user.designation || roleLabel[record.user.role] || record.user.role}
                                                     </p>
                                                 </div>
-                                                <HiOutlineStar className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                                                {isAdmin ? (
+                                                    <button
+                                                        onClick={() => handleDelete(record.id)}
+                                                        className="p-1 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all flex-shrink-0"
+                                                        title="Remove"
+                                                    >
+                                                        <HiOutlineTrash className="w-3.5 h-3.5" />
+                                                    </button>
+                                                ) : (
+                                                    <HiOutlineStar className="w-5 h-5 text-amber-400 flex-shrink-0" />
+                                                )}
                                             </div>
 
                                             <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium mb-2">
@@ -291,16 +301,6 @@ export default function EmployeeOfTheMonthPage() {
                                             )}
 
                                             <p className="text-xs text-slate-400 mt-2">By {record.grantedBy.name}</p>
-
-                                            {isAdmin && (
-                                                <button
-                                                    onClick={() => handleDelete(record.id)}
-                                                    className="absolute top-3 right-3 p-1 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
-                                                    title="Remove"
-                                                >
-                                                    <HiOutlineTrash className="w-3.5 h-3.5" />
-                                                </button>
-                                            )}
                                         </motion.div>
                                     ))}
                                 </div>
@@ -326,9 +326,9 @@ export default function EmployeeOfTheMonthPage() {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
                         >
-                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+                            <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md p-5 sm:p-6 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                                 <div className="flex items-center justify-between mb-5">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 rounded-xl flex items-center justify-center"

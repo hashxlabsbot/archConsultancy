@@ -275,15 +275,15 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                 )}
                             </motion.button>
 
-                            {/* Dropdown */}
+                            {/* Dropdown — fixed full-width on mobile, absolute on desktop */}
                             <AnimatePresence>
                                 {showNotifications && (
                                     <motion.div
-                                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
                                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
                                         transition={{ duration: 0.15 }}
-                                        className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl overflow-hidden z-50"
+                                        className="fixed left-3 right-3 top-[62px] sm:absolute sm:left-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-96 bg-white rounded-2xl overflow-hidden z-50"
                                         style={{ boxShadow: '0 8px 32px rgba(99,102,241,0.15), 0 2px 8px rgba(0,0,0,0.08)' }}
                                     >
                                         {/* Header */}
@@ -299,18 +299,26 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                                     </span>
                                                 )}
                                             </div>
-                                            {unreadCount > 0 && (
+                                            <div className="flex items-center gap-2">
+                                                {unreadCount > 0 && (
+                                                    <button
+                                                        onClick={() => markAsRead()}
+                                                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline"
+                                                    >
+                                                        Mark all read
+                                                    </button>
+                                                )}
                                                 <button
-                                                    onClick={() => markAsRead()}
-                                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-medium hover:underline"
+                                                    onClick={() => setShowNotifications(false)}
+                                                    className="sm:hidden p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                                                 >
-                                                    Mark all read
+                                                    <HiXMark className="w-4 h-4" />
                                                 </button>
-                                            )}
+                                            </div>
                                         </div>
 
                                         {/* List */}
-                                        <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-50">
+                                        <div className="max-h-[60vh] sm:max-h-[360px] overflow-y-auto divide-y divide-slate-50">
                                             {notifications.length === 0 ? (
                                                 <div className="py-10 text-center">
                                                     <HiOutlineBell className="w-8 h-8 text-slate-200 mx-auto mb-2" />
@@ -323,12 +331,9 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                                         onClick={() => handleNotifClick(notif)}
                                                         className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors hover:bg-slate-50 ${!notif.isRead ? 'bg-indigo-50/40' : ''}`}
                                                     >
-                                                        {/* Icon */}
                                                         <div className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center mt-0.5 ${!notif.isRead ? 'bg-indigo-100' : 'bg-slate-100'}`}>
                                                             {getNotifIcon(notif.title)}
                                                         </div>
-
-                                                        {/* Content */}
                                                         <div className="flex-1 min-w-0">
                                                             <div className="flex items-start justify-between gap-2">
                                                                 <p className={`text-sm leading-tight ${!notif.isRead ? 'font-semibold text-slate-900' : 'font-medium text-slate-700'}`}>

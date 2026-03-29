@@ -40,9 +40,19 @@ const PRIORITY_CONFIG: Record<string, { border: string; badge: string; iconColor
     },
 };
 
-function NoticePopup({ notices, onDismiss }: { notices: any[]; onDismiss: () => void }) {
+function NoticePopup({
+    notices,
+    onGotIt,
+    onCancel,
+}: {
+    notices: any[];
+    onGotIt: (noticeId: string) => void;
+    onCancel: () => void;
+}) {
     const [index, setIndex] = useState(0);
-    const notice = notices[index];
+    // Keep index in bounds if notices list shrinks after marking one read
+    const safeIndex = Math.min(index, notices.length - 1);
+    const notice = notices[safeIndex];
     const cfg = PRIORITY_CONFIG[notice?.priority] || PRIORITY_CONFIG.NORMAL;
     const Icon = cfg.icon;
     const total = notices.length;
@@ -52,14 +62,14 @@ function NoticePopup({ notices, onDismiss }: { notices: any[]; onDismiss: () => 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/50 backdrop-blur-sm"
         >
             <motion.div
-                initial={{ opacity: 0, scale: 0.92, y: 24 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.92, y: 24 }}
-                transition={{ type: 'spring', damping: 24, stiffness: 280 }}
-                className={`bg-white rounded-2xl shadow-2xl w-full max-w-md border ${cfg.border} overflow-hidden`}
+                initial={{ opacity: 0, y: 60 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 60 }}
+                transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                className={`bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md border-t sm:border ${cfg.border} overflow-hidden`}
             >
                 {/* Priority stripe */}
                 <div className={`h-1.5 w-full bg-gradient-to-r ${cfg.stripe}`} />
@@ -75,13 +85,23 @@ function NoticePopup({ notices, onDismiss }: { notices: any[]; onDismiss: () => 
                                 Notice from Management
                             </p>
                             {total > 1 && (
-                                <p className="text-[10px] text-slate-400">{index + 1} of {total} unread</p>
+                                <p className="text-[10px] text-slate-400">{safeIndex + 1} of {total} unread</p>
                             )}
                         </div>
                     </div>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>
-                        {notice.priority === 'URGENT' ? 'URGENT' : notice.priority === 'INFO' ? 'INFO' : 'NOTICE'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${cfg.badge}`}>
+                            {notice.priority === 'URGENT' ? 'URGENT' : notice.priority === 'INFO' ? 'INFO' : 'NOTICE'}
+                        </span>
+                        {/* X closes without marking read — will show again next login */}
+                        <button
+                            onClick={onCancel}
+                            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                            title="Remind me later"
+                        >
+                            <HiXMark className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Content */}
@@ -99,12 +119,12 @@ function NoticePopup({ notices, onDismiss }: { notices: any[]; onDismiss: () => 
 
                 {/* Footer */}
                 <div className="px-5 pb-5 flex items-center gap-2">
-                    {/* Prev/Next if multiple notices */}
+                    {/* Dot pagination for multiple notices */}
                     {total > 1 && (
                         <div className="flex items-center gap-1 mr-auto">
                             <button
                                 onClick={() => setIndex((i) => Math.max(0, i - 1))}
-                                disabled={index === 0}
+                                disabled={safeIndex === 0}
                                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 disabled:opacity-30 hover:bg-slate-100 transition-colors"
                             >
                                 <HiOutlineChevronLeft className="w-4 h-4" />
@@ -114,13 +134,13 @@ function NoticePopup({ notices, onDismiss }: { notices: any[]; onDismiss: () => 
                                     <button
                                         key={i}
                                         onClick={() => setIndex(i)}
-                                        className={`w-1.5 h-1.5 rounded-full transition-all ${i === index ? 'bg-indigo-500 w-3' : 'bg-slate-300'}`}
+                                        className={`w-1.5 h-1.5 rounded-full transition-all ${i === safeIndex ? 'bg-indigo-500 w-3' : 'bg-slate-300'}`}
                                     />
                                 ))}
                             </div>
                             <button
                                 onClick={() => setIndex((i) => Math.min(total - 1, i + 1))}
-                                disabled={index === total - 1}
+                                disabled={safeIndex === total - 1}
                                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 disabled:opacity-30 hover:bg-slate-100 transition-colors"
                             >
                                 <HiOutlineChevronRight className="w-4 h-4" />
@@ -130,17 +150,17 @@ function NoticePopup({ notices, onDismiss }: { notices: any[]; onDismiss: () => 
 
                     <Link
                         href="/notice-board"
-                        onClick={onDismiss}
+                        onClick={onCancel}
                         className="text-sm text-indigo-600 font-medium hover:text-indigo-700 hover:underline ml-auto"
                     >
                         View Board
                     </Link>
+                    {/* Got it — marks THIS notice as read and advances to next */}
                     <button
-                        onClick={onDismiss}
+                        onClick={() => onGotIt(notice.id)}
                         className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-white"
                         style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}
                     >
-                        <HiXMark className="w-4 h-4" />
                         Got it
                     </button>
                 </div>
@@ -181,15 +201,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         } catch { }
     };
 
-    const handleDismissPopup = async () => {
+    // "Got it" — mark this notice as read, remove from list; close popup only when all are read
+    const handleGotIt = async (noticeId: string) => {
+        await fetch(`/api/notices/${noticeId}`, { method: 'PATCH' }).catch(() => { });
+        setUnreadNotices((prev) => {
+            const remaining = prev.filter((n) => n.id !== noticeId);
+            if (remaining.length === 0) setShowNoticePopup(false);
+            return remaining;
+        });
+    };
+
+    // X / View Board — close without marking read; will pop again on next login
+    const handleCancelPopup = () => {
         setShowNoticePopup(false);
-        // Mark all shown notices as read
-        await Promise.all(
-            unreadNotices.map((n) =>
-                fetch(`/api/notices/${n.id}`, { method: 'PATCH' }).catch(() => { })
-            )
-        );
-        setUnreadNotices([]);
     };
 
     if (status === 'loading') {
@@ -258,7 +282,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Unread Notice Popup */}
             <AnimatePresence>
                 {showNoticePopup && unreadNotices.length > 0 && (
-                    <NoticePopup notices={unreadNotices} onDismiss={handleDismissPopup} />
+                    <NoticePopup notices={unreadNotices} onGotIt={handleGotIt} onCancel={handleCancelPopup} />
                 )}
             </AnimatePresence>
         </div>

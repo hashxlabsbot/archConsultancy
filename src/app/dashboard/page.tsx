@@ -17,6 +17,8 @@ import {
     HiOutlineArrowUpRight,
     HiOutlineWrenchScrewdriver,
     HiOutlineTrophy,
+    HiOutlineMegaphone,
+    HiOutlineInformationCircle,
 } from 'react-icons/hi2';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import toast from 'react-hot-toast';
@@ -78,12 +80,14 @@ export default function DashboardPage() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentEOM, setCurrentEOM] = useState<any>(null);
+    const [recentNotices, setRecentNotices] = useState<any[]>([]);
     const role = (session?.user as any)?.role || 'EMPLOYEE';
     const firstName = session?.user?.name?.split(' ')[0] || 'there';
 
     useEffect(() => {
         fetchDashboard();
         fetchEOM();
+        fetchNotices();
     }, []);
 
     const fetchDashboard = async () => {
@@ -99,6 +103,16 @@ export default function DashboardPage() {
             if (res.ok) {
                 const d = await res.json();
                 setCurrentEOM(d.current);
+            }
+        } catch { }
+    };
+
+    const fetchNotices = async () => {
+        try {
+            const res = await fetch('/api/notices');
+            if (res.ok) {
+                const d = await res.json();
+                setRecentNotices((d.notices || []).slice(0, 4));
             }
         } catch { }
     };
@@ -631,6 +645,67 @@ export default function DashboardPage() {
                         </div>
                     </motion.div>
                 )}
+
+                {/* ── NOTICE BOARD ── */}
+                <motion.div variants={itemVariants}>
+                    <div className="glass-card p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2">
+                                <div className="icon-sq-indigo w-9 h-9 rounded-xl">
+                                    <HiOutlineMegaphone className="w-4 h-4 text-white" />
+                                </div>
+                                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                    Notice Board
+                                </h3>
+                            </div>
+                            <Link href="/notice-board" className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 flex items-center gap-1">
+                                View all <HiOutlineArrowUpRight className="w-3 h-3" />
+                            </Link>
+                        </div>
+
+                        {recentNotices.length > 0 ? (
+                            <div className="space-y-2">
+                                {recentNotices.map((notice) => {
+                                    const isUrgent = notice.priority === 'URGENT';
+                                    const isInfo = notice.priority === 'INFO';
+                                    const borderColor = isUrgent ? 'border-rose-200 bg-rose-50' : isInfo ? 'border-sky-200 bg-sky-50' : 'border-indigo-100 bg-indigo-50/50';
+                                    const badgeColor = isUrgent ? 'bg-rose-100 text-rose-700' : isInfo ? 'bg-sky-100 text-sky-700' : 'bg-indigo-100 text-indigo-700';
+                                    const stripeColor = isUrgent ? 'bg-rose-500' : isInfo ? 'bg-sky-500' : 'bg-indigo-500';
+                                    const NoticeIcon = isUrgent ? HiOutlineExclamationTriangle : isInfo ? HiOutlineInformationCircle : HiOutlineMegaphone;
+                                    const iconColor = isUrgent ? 'text-rose-500' : isInfo ? 'text-sky-500' : 'text-indigo-500';
+
+                                    return (
+                                        <Link key={notice.id} href="/notice-board">
+                                            <div className={`flex items-start gap-3 p-3 rounded-xl border ${borderColor} hover:shadow-sm transition-all cursor-pointer`}>
+                                                <div className={`w-1 self-stretch rounded-full flex-shrink-0 ${stripeColor}`} />
+                                                <NoticeIcon className={`w-4 h-4 flex-shrink-0 mt-0.5 ${iconColor}`} />
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-0.5">
+                                                        <p className="text-sm font-semibold text-slate-900 truncate">{notice.title}</p>
+                                                        {isUrgent && (
+                                                            <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${badgeColor}`}>URGENT</span>
+                                                        )}
+                                                        {!notice.isRead && (
+                                                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 flex-shrink-0" />
+                                                        )}
+                                                    </div>
+                                                    <p className="text-xs text-slate-500 truncate">{notice.message}</p>
+                                                </div>
+                                            </div>
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-6">
+                                <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center mx-auto mb-2">
+                                    <HiOutlineMegaphone className="w-6 h-6 text-indigo-300" />
+                                </div>
+                                <p className="text-slate-400 text-sm">No notices yet</p>
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
 
                 {/* ── QUICK ACTIONS ── */}
                 <motion.div variants={itemVariants}>

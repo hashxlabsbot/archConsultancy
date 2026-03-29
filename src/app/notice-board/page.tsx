@@ -160,7 +160,7 @@ export default function NoticeBoardPage() {
                 animate="show"
             >
                 {/* Header */}
-                <motion.div variants={itemVariants} className="flex items-center justify-between">
+                <motion.div variants={itemVariants} className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
                             Notice Board
@@ -172,7 +172,7 @@ export default function NoticeBoardPage() {
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
                             onClick={() => setIsModalOpen(true)}
-                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white"
+                            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white flex-shrink-0"
                             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}
                         >
                             <HiOutlinePlusCircle className="w-5 h-5" />
@@ -201,22 +201,22 @@ export default function NoticeBoardPage() {
                                 <motion.div
                                     key={notice.id}
                                     variants={itemVariants}
-                                    className={`rounded-2xl border bg-gradient-to-br ${cfg.bg} ${cfg.border} overflow-hidden group`}
+                                    className={`rounded-2xl border bg-gradient-to-br ${cfg.bg} ${cfg.border} overflow-hidden`}
                                 >
                                     {/* Priority stripe */}
                                     <div className={`h-1 w-full bg-gradient-to-r ${cfg.headerBg}`} />
 
-                                    <div className="p-5">
-                                        <div className="flex items-start gap-4">
+                                    <div className="p-4 sm:p-5">
+                                        <div className="flex items-start gap-3 sm:gap-4">
                                             {/* Icon */}
-                                            <div className={`flex-shrink-0 w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center shadow-sm`}>
-                                                <Icon className={`w-5 h-5 ${cfg.iconColor}`} />
+                                            <div className={`flex-shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/70 flex items-center justify-center shadow-sm`}>
+                                                <Icon className={`w-4 h-4 sm:w-5 sm:h-5 ${cfg.iconColor}`} />
                                             </div>
 
                                             {/* Content */}
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-start justify-between gap-3 mb-1">
-                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                <div className="flex items-start justify-between gap-2 mb-1">
+                                                    <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
                                                         <h3 className="font-bold text-slate-900 text-base leading-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
                                                             {notice.title}
                                                         </h3>
@@ -224,10 +224,11 @@ export default function NoticeBoardPage() {
                                                             {cfg.label}
                                                         </span>
                                                     </div>
+                                                    {/* Delete always visible on mobile (no hover) */}
                                                     {isAdmin && (
                                                         <button
                                                             onClick={() => handleDelete(notice.id)}
-                                                            className="flex-shrink-0 p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all"
+                                                            className="flex-shrink-0 p-1.5 rounded-lg text-rose-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
                                                             title="Delete notice"
                                                         >
                                                             <HiOutlineTrash className="w-4 h-4" />
@@ -281,9 +282,9 @@ export default function NoticeBoardPage() {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
                             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+                            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
                         >
-                            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+                            <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-lg max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                                 {/* Modal Header */}
                                 <div className="flex items-center justify-between p-5 border-b border-slate-100">
                                     <div className="flex items-center gap-3">
