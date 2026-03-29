@@ -46,6 +46,7 @@ model User {
   employeeOfMonthAwards    EmployeeOfTheMonth[]   @relation("EOMWinner")
   employeeOfMonthGranted   EmployeeOfTheMonth[]   @relation("EOMGrantedBy")
   notices                  Notice[]               @relation("NoticeAuthor")
+  noticeReads              NoticeRead[]
 }
 
 model EmployeeOfTheMonth {
@@ -284,15 +285,27 @@ model SalarySlip {
 }
 
 model Notice {
-  id           String   @id @default(cuid())
+  id           String       @id @default(cuid())
   title        String
   message      String
-  priority     String   @default("NORMAL") // NORMAL, URGENT, INFO
+  priority     String       @default("NORMAL") // NORMAL, URGENT, INFO
   postedById   String
-  postedBy     User     @relation("NoticeAuthor", fields: [postedById], references: [id])
-  whatsappSent Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  postedBy     User         @relation("NoticeAuthor", fields: [postedById], references: [id])
+  whatsappSent Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  reads        NoticeRead[]
+}
+
+model NoticeRead {
+  id        String   @id @default(cuid())
+  noticeId  String
+  notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime @default(now())
+
+  @@unique([noticeId, userId])
 }
 
 model DailySiteLog {

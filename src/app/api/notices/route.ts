@@ -4,18 +4,32 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { sendWhatsAppToMany } from '@/lib/whatsapp';
 
-// GET — all roles can fetch notices
-export async function GET() {
+// GET — all roles fetch notices; non-admins get unread flag per notice
+export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+        const userId = (session.user as any).id;
+        const { searchParams } = new URL(req.url);
+        const unreadOnly = searchParams.get('unread') === 'true';
+
+        // IDs this user has already read
+        const readRecords = await prisma.noticeRead.findMany({
+            where: { userId },
+            select: { noticeId: true },
+        });
+        const readIds = new Set(readRecords.map((r) => r.noticeId));
 
         const notices = await prisma.notice.findMany({
             orderBy: { createdAt: 'desc' },
             include: { postedBy: { select: { id: true, name: true, designation: true } } },
         });
 
-        return NextResponse.json({ notices });
+        const withRead = notices.map((n) => ({ ...n, isRead: readIds.has(n.id) }));
+        const result = unreadOnly ? withRead.filter((n) => !n.isRead) : withRead;
+
+        return NextResponse.json({ notices: result });
     } catch (err: any) {
         console.error('[Notices GET]', err);
         return NextResponse.json({ error: err.message }, { status: 500 });
