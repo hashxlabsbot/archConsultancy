@@ -1,13 +1,22 @@
 /**
- * WhatsApp utility using Twilio API.
+ * WhatsApp utility — Meta WhatsApp Cloud API (official, no third-party).
  *
  * Required env vars:
- *   TWILIO_ACCOUNT_SID   — Your Twilio Account SID
- *   TWILIO_AUTH_TOKEN    — Your Twilio Auth Token
- *   TWILIO_WHATSAPP_FROM — Sender number, e.g. "whatsapp:+14155238886"
+ *   WHATSAPP_PHONE_NUMBER_ID  — Phone Number ID from Meta Business (not the phone number itself)
+ *   WHATSAPP_ACCESS_TOKEN     — Permanent System User token from Meta Business Suite
+ *   WHATSAPP_API_VERSION      — e.g. "v19.0" (optional, defaults to v19.0)
  *
- * If any of these are missing the send is silently skipped so the portal
- * keeps working even before WhatsApp is configured.
+ * If any required var is missing, sending is silently skipped so the portal
+ * keeps working before WhatsApp is configured.
+ *
+ * Setup guide:
+ *   1. Go to developers.facebook.com → My Apps → Create App → Business
+ *   2. Add "WhatsApp" product to your app
+ *   3. WhatsApp → Getting Started → note your Phone Number ID + temporary token
+ *   4. For permanent token: Business Settings → System Users → Add → generate token
+ *      with whatsapp_business_messaging permission
+ *   5. To use your own number (not the test number):
+ *      WhatsApp → Phone Numbers → Add phone number → verify via OTP
  */
 
 interface WhatsAppResult {
@@ -20,41 +29,37 @@ export async function sendWhatsAppToMany(
     phones: string[],
     message: string
 ): Promise<WhatsAppResult> {
-    const accountSid = process.env.TWILIO_ACCOUNT_SID;
-    const authToken = process.env.TWILIO_AUTH_TOKEN;
-    const from = process.env.TWILIO_WHATSAPP_FROM;
+    const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
+    const apiVersion = process.env.WHATSAPP_API_VERSION || 'v19.0';
 
-    // Gracefully skip if Twilio isn't configured yet
-    if (!accountSid || !authToken || !from) {
-        console.warn('[WhatsApp] Twilio env vars not set — skipping WhatsApp delivery.');
+    if (!phoneNumberId || !accessToken) {
+        console.warn('[WhatsApp] Meta Cloud API env vars not set — skipping WhatsApp delivery.');
         return { sent: 0, failed: 0, skipped: true };
     }
 
-    const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
-    const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+    const url = `https://graph.facebook.com/${apiVersion}/${phoneNumberId}/messages`;
 
     let sent = 0;
     let failed = 0;
 
     for (const phone of phones) {
-        // Normalise Indian numbers: strip spaces/dashes, ensure +91 prefix
         const normalised = normalisePhone(phone);
         if (!normalised) { failed++; continue; }
 
         try {
-            const body = new URLSearchParams({
-                From: from,
-                To: `whatsapp:${normalised}`,
-                Body: message,
-            });
-
             const res = await fetch(url, {
                 method: 'POST',
                 headers: {
-                    Authorization: `Basic ${auth}`,
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    Authorization: `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json',
                 },
-                body: body.toString(),
+                body: JSON.stringify({
+                    messaging_product: 'whatsapp',
+                    to: normalised,
+                    type: 'text',
+                    text: { body: message },
+                }),
             });
 
             if (res.ok) {
@@ -73,15 +78,12 @@ export async function sendWhatsAppToMany(
     return { sent, failed, skipped: false };
 }
 
+// Normalise to E.164 format without the '+' (Meta API expects digits only, e.g. 919876543210)
 function normalisePhone(raw: string): string | null {
     if (!raw) return null;
-    // Remove all non-digit characters except leading +
-    const digits = raw.replace(/[^\d+]/g, '');
-    // Already has country code
-    if (digits.startsWith('+')) return digits;
-    // Indian 10-digit mobile
-    if (/^[6-9]\d{9}$/.test(digits)) return `+91${digits}`;
-    // With 91 prefix (no +)
-    if (/^91[6-9]\d{9}$/.test(digits)) return `+${digits}`;
+    const digits = raw.replace(/\D/g, '');
+    if (/^91[6-9]\d{9}$/.test(digits)) return digits;           // 91XXXXXXXXXX
+    if (/^[6-9]\d{9}$/.test(digits)) return `91${digits}`;     // 10-digit Indian
+    if (/^\d{10,15}$/.test(digits)) return digits;              // other intl numbers
     return null;
 }
