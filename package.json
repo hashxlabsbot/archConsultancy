@@ -17,6 +17,7 @@
     "@hookform/resolvers": "^3.3.0",
     "@prisma/client": "^5.14.0",
     "@react-google-maps/api": "^2.20.8",
+    "@vercel/blob": "^2.3.2",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.0",
     "date-fns": "^3.6.0",

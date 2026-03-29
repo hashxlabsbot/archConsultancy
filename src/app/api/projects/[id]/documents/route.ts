@@ -2,10 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
+import { put } from '@vercel/blob';
 
-// POST /api/projects/[id]/documents — Upload document
+// POST /api/projects/[id]/documents — Upload document to Vercel Blob
 export async function POST(
     req: NextRequest,
     { params }: { params: { id: string } }
@@ -24,36 +23,35 @@ export async function POST(
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // Check project exists
+        if (file.size > 20 * 1024 * 1024) {
+            return NextResponse.json({ error: 'File too large (max 20MB)' }, { status: 400 });
+        }
+
         const project = await prisma.project.findUnique({ where: { id: params.id } });
         if (!project) {
             return NextResponse.json({ error: 'Project not found' }, { status: 404 });
         }
 
-        // Check for existing document with same filename for versioning
+        // Versioning: find highest existing version for same filename
         const existingDoc = await prisma.document.findFirst({
             where: { projectId: params.id, filename: file.name },
             orderBy: { version: 'desc' },
         });
-
         const version = existingDoc ? existingDoc.version + 1 : 1;
 
-        // Save file to local storage
-        const uploadDir = path.join(process.cwd(), 'public', 'uploads', params.id);
-        await mkdir(uploadDir, { recursive: true });
-
-        const filename = `v${version}_${file.name}`;
-        const filePath = path.join(uploadDir, filename);
-        const bytes = await file.arrayBuffer();
-        await writeFile(filePath, Buffer.from(bytes));
-
-        const storagePath = `/uploads/${params.id}/${filename}`;
+        // Upload to Vercel Blob
+        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const blobPath = `projects/${params.id}/v${version}_${safeName}`;
+        const blob = await put(blobPath, file, {
+            access: 'public',
+            contentType: file.type,
+        });
 
         const document = await prisma.document.create({
             data: {
                 projectId: params.id,
                 filename: file.name,
-                storagePath,
+                storagePath: blob.url,
                 version,
                 uploadedBy: (session.user as any).id,
                 tags: tags || null,
@@ -66,9 +64,9 @@ export async function POST(
         });
 
         return NextResponse.json({ document }, { status: 201 });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Document upload error:', error);
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+        return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
     }
 }
 

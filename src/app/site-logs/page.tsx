@@ -12,9 +12,10 @@ import {
     HiOutlineXMark,
     HiOutlineDocumentText,
     HiOutlineCalendarDays,
-    HiOutlineMapPin,
     HiOutlinePhoto,
     HiOutlineArrowPath,
+    HiOutlineChevronLeft,
+    HiOutlineChevronRight,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -27,13 +28,17 @@ export default function SiteLogsPage() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
 
     // Form state
     const [selectedProject, setSelectedProject] = useState('');
     const [labourCount, setLabourCount] = useState(0);
     const [mistriCount, setMistriCount] = useState(0);
     const [notes, setNotes] = useState('');
+    const [mediaFiles, setMediaFiles] = useState<File[]>([]);
     const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
+    const [uploadingMedia, setUploadingMedia] = useState(false);
     const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
 
     // Filter state for admin
@@ -42,18 +47,26 @@ export default function SiteLogsPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
-        fetchLogs();
+        setPage(1);
     }, [filterDate]);
 
-    const fetchLogs = async () => {
+    useEffect(() => {
+        fetchLogs(page);
+    }, [filterDate, page]);
+
+    const fetchLogs = async (p: number) => {
+        setLoading(true);
         try {
             const params = new URLSearchParams();
             if (filterDate) params.set('date', filterDate);
+            params.set('page', String(p));
+            params.set('limit', '25');
             const res = await fetch(`/api/site-logs?${params.toString()}`);
             if (res.ok) {
                 const data = await res.json();
                 setLogs(data.logs || []);
                 setProjects(data.projects || []);
+                if (data.pagination) setPagination(data.pagination);
                 if (data.projects?.length > 0 && !selectedProject) {
                     setSelectedProject(data.projects[0].id);
                 }
@@ -70,10 +83,11 @@ export default function SiteLogsPage() {
         if (!files) return;
 
         Array.from(files).forEach(file => {
-            if (file.size > 5 * 1024 * 1024) {
-                toast.error(`${file.name} is too large (max 5MB)`);
+            if (file.size > 10 * 1024 * 1024) {
+                toast.error(`${file.name} is too large (max 10MB)`);
                 return;
             }
+            setMediaFiles(prev => [...prev, file]);
             const reader = new FileReader();
             reader.onload = () => {
                 setMediaPreviews(prev => [...prev, reader.result as string]);
@@ -86,7 +100,28 @@ export default function SiteLogsPage() {
     };
 
     const removeMedia = (index: number) => {
+        setMediaFiles(prev => prev.filter((_, i) => i !== index));
         setMediaPreviews(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const uploadMedia = async (): Promise<string[]> => {
+        if (!mediaFiles.length) return [];
+        setUploadingMedia(true);
+        try {
+            return await Promise.all(
+                mediaFiles.map(async (file) => {
+                    const fd = new FormData();
+                    fd.append('file', file);
+                    fd.append('folder', 'site-logs');
+                    const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                    if (!res.ok) throw new Error('Media upload failed');
+                    const data = await res.json();
+                    return data.url as string;
+                })
+            );
+        } finally {
+            setUploadingMedia(false);
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -97,6 +132,7 @@ export default function SiteLogsPage() {
         }
         setSubmitting(true);
         try {
+            const mediaUrls = await uploadMedia();
             const res = await fetch('/api/site-logs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -105,7 +141,7 @@ export default function SiteLogsPage() {
                     labourCount,
                     mistriCount,
                     notes,
-                    mediaUrls: mediaPreviews,
+                    mediaUrls,
                 }),
             });
 
@@ -115,8 +151,9 @@ export default function SiteLogsPage() {
                 setLabourCount(0);
                 setMistriCount(0);
                 setNotes('');
+                setMediaFiles([]);
                 setMediaPreviews([]);
-                fetchLogs();
+                fetchLogs(page);
             } else {
                 const data = await res.json();
                 toast.error(data.error || 'Failed to submit');
@@ -331,6 +368,7 @@ export default function SiteLogsPage() {
                                                         setLabourCount(log.labourCount);
                                                         setMistriCount(log.mistriCount);
                                                         setNotes(log.notes || '');
+                                                        setMediaFiles([]);
                                                         setMediaPreviews([]);
                                                         setShowForm(true);
                                                     }}
@@ -344,6 +382,31 @@ export default function SiteLogsPage() {
                                 </motion.div>
                             );
                         })}
+                    </div>
+                )}
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between glass-card p-4">
+                        <p className="text-sm text-slate-500">
+                            Page {page} of {pagination.totalPages} · {pagination.total} total
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <HiOutlineChevronLeft className="w-4 h-4 text-slate-600" />
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                disabled={page === pagination.totalPages}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <HiOutlineChevronRight className="w-4 h-4 text-slate-600" />
+                            </button>
+                        </div>
                     </div>
                 )}
             </motion.div>
@@ -443,7 +506,7 @@ export default function SiteLogsPage() {
                                     >
                                         <HiOutlineCamera className="w-8 h-8 text-slate-300 mx-auto mb-2" />
                                         <p className="text-sm text-slate-500 font-medium">Tap to capture or upload photos</p>
-                                        <p className="text-xs text-slate-400 mt-1">Max 5MB per file • JPG, PNG, MP4</p>
+                                        <p className="text-xs text-slate-400 mt-1">Max 10MB per file • JPG, PNG, MP4</p>
                                     </div>
                                     <input
                                         ref={fileInputRef}
@@ -477,11 +540,11 @@ export default function SiteLogsPage() {
                                 {/* Submit */}
                                 <div className="pt-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50/50 -mx-6 -mb-6 px-6 py-4 rounded-b-3xl">
                                     <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-6">Cancel</button>
-                                    <button type="submit" disabled={submitting} className="btn-primary px-8 shadow-glow-indigo flex items-center gap-2">
-                                        {submitting ? (
+                                    <button type="submit" disabled={submitting || uploadingMedia} className="btn-primary px-8 shadow-glow-indigo flex items-center gap-2">
+                                        {(submitting || uploadingMedia) ? (
                                             <>
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                                                Submitting...
+                                                {uploadingMedia ? 'Uploading...' : 'Submitting...'}
                                             </>
                                         ) : (
                                             'Submit Log'

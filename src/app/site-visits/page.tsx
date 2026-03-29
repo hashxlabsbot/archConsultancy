@@ -4,23 +4,27 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { HiOutlineMapPin, HiPlus } from 'react-icons/hi2';
+import { HiOutlineMapPin, HiPlus, HiOutlineChevronLeft, HiOutlineChevronRight } from 'react-icons/hi2';
 
 export default function SiteVisitsPage() {
     const { data: session } = useSession();
     const [visits, setVisits] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
 
     useEffect(() => {
-        fetchVisits();
-    }, []);
+        fetchVisits(page);
+    }, [page]);
 
-    const fetchVisits = async () => {
+    const fetchVisits = async (p: number) => {
+        setLoading(true);
         try {
-            const res = await fetch('/api/site-visits');
+            const res = await fetch(`/api/site-visits?page=${p}&limit=20`);
             if (res.ok) {
                 const data = await res.json();
                 setVisits(data.visits || []);
+                if (data.pagination) setPagination(data.pagination);
             }
         } catch (e) { } finally {
             setLoading(false);
@@ -52,6 +56,7 @@ export default function SiteVisitsPage() {
                     <Link href="/site-visits/new" className="btn-primary inline-flex">Log First Visit</Link>
                 </div>
             ) : (
+                <>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     {visits.map((visit, i) => (
                         <motion.div
@@ -99,6 +104,30 @@ export default function SiteVisitsPage() {
                         </motion.div>
                     ))}
                 </div>
+                {pagination.totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-6 glass-card p-4">
+                        <p className="text-sm text-slate-500">
+                            Page {page} of {pagination.totalPages} · {pagination.total} total
+                        </p>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <HiOutlineChevronLeft className="w-4 h-4 text-slate-600" />
+                            </button>
+                            <button
+                                onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
+                                disabled={page === pagination.totalPages}
+                                className="p-2 rounded-lg border border-gray-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                                <HiOutlineChevronRight className="w-4 h-4 text-slate-600" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+                </>
             )}
         </div>
     );

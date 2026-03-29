@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HiOutlineCurrencyRupee, HiPencil, HiXMark, HiOutlineDocumentText, HiOutlineCog6Tooth } from 'react-icons/hi2';
+import { HiOutlineCurrencyRupee, HiPencil, HiXMark, HiOutlineDocumentText, HiOutlineCog6Tooth, HiOutlineCheckCircle } from 'react-icons/hi2';
 import { getInitials } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -70,6 +70,22 @@ export default function AdminSalaryPage() {
             if (res.ok) { toast.success('Salary structure saved!'); setIsConfigModalOpen(false); fetchUsers(); }
             else toast.error('Failed to save');
         } catch { toast.error('Error saving structure'); }
+    };
+
+    const handleTogglePaid = async (slipId: string) => {
+        // Optimistic update
+        setSlips(prev => prev.map(s => s.id === slipId ? { ...s, status: s.status === 'PAID' ? 'GENERATED' : 'PAID' } : s));
+        try {
+            const res = await fetch(`/api/admin/salary-slips/${slipId}`, { method: 'PATCH' });
+            if (!res.ok) {
+                // Revert on failure
+                setSlips(prev => prev.map(s => s.id === slipId ? { ...s, status: s.status === 'PAID' ? 'GENERATED' : 'PAID' } : s));
+                toast.error('Failed to update status');
+            }
+        } catch {
+            setSlips(prev => prev.map(s => s.id === slipId ? { ...s, status: s.status === 'PAID' ? 'GENERATED' : 'PAID' } : s));
+            toast.error('Failed to update status');
+        }
     };
 
     const handleGenerateSlips = async () => {
@@ -208,11 +224,12 @@ export default function AdminSalaryPage() {
                                                 <th className="text-right text-sm text-slate-500 px-5 py-3 font-medium">Incentive</th>
                                                 <th className="text-right text-sm text-slate-500 px-5 py-3 font-medium font-bold">Gross</th>
                                                 <th className="text-center text-sm text-slate-500 px-5 py-3 font-medium">Status</th>
+                                                <th className="text-center text-sm text-slate-500 px-5 py-3 font-medium">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody className="bg-white">
                                             {slips.length === 0 ? (
-                                                <tr><td colSpan={9} className="px-5 py-10 text-center text-slate-500">No slips generated for {filterMonth} {filterYear}. Click "Generate" to create them.</td></tr>
+                                                <tr><td colSpan={10} className="px-5 py-10 text-center text-slate-500">No slips generated for {filterMonth} {filterYear}. Click "Generate" to create them.</td></tr>
                                             ) : slips.map((slip) => (
                                                 <tr key={slip.id} className="border-b border-gray-100 hover:bg-slate-50/50 transition-colors">
                                                     <td className="px-5 py-3">
@@ -228,6 +245,15 @@ export default function AdminSalaryPage() {
                                                     <td className="px-5 py-3 text-right text-sm font-bold text-emerald-700">₹{slip.grossSalary.toLocaleString()}</td>
                                                     <td className="px-5 py-3 text-center">
                                                         <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${slip.status === 'PAID' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}>{slip.status}</span>
+                                                    </td>
+                                                    <td className="px-5 py-3 text-center">
+                                                        <button
+                                                            onClick={() => handleTogglePaid(slip.id)}
+                                                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${slip.status === 'PAID' ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'}`}
+                                                        >
+                                                            <HiOutlineCheckCircle className="w-3.5 h-3.5" />
+                                                            {slip.status === 'PAID' ? 'Unmark' : 'Mark Paid'}
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             ))}

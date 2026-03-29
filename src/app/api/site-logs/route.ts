@@ -36,15 +36,23 @@ export async function GET(req: NextRequest) {
             where.projectId = projectId;
         }
 
-        const logs = await prisma.dailySiteLog.findMany({
-            where,
-            include: {
-                user: { select: { id: true, name: true, email: true, role: true } },
-                project: { select: { id: true, name: true, client: true } },
-            },
-            orderBy: { date: 'desc' },
-            take: 50,
-        });
+        const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
+        const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '25')));
+        const skip = (page - 1) * limit;
+
+        const [logs, total] = await Promise.all([
+            prisma.dailySiteLog.findMany({
+                where,
+                include: {
+                    user: { select: { id: true, name: true, email: true, role: true } },
+                    project: { select: { id: true, name: true, client: true } },
+                },
+                orderBy: { date: 'desc' },
+                skip,
+                take: limit,
+            }),
+            prisma.dailySiteLog.count({ where }),
+        ]);
 
         // Also fetch projects for the dropdown
         let projects;
@@ -78,7 +86,11 @@ export async function GET(req: NextRequest) {
             });
         }
 
-        return NextResponse.json({ logs, projects });
+        return NextResponse.json({
+            logs,
+            projects,
+            pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+        });
     } catch (error) {
         console.error('Site logs fetch error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

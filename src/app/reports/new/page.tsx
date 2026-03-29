@@ -12,6 +12,8 @@ export default function NewReportPage() {
     const [loading, setLoading] = useState(false);
     const [projects, setProjects] = useState<any[]>([]);
     const [form, setForm] = useState({ tasks: '', blockers: '', nextPlan: '', projectId: '', imageUrl: '' });
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState('');
 
     useEffect(() => {
         fetchProjects();
@@ -32,15 +34,13 @@ export default function NewReportPage() {
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            // Keep it under ~2MB to avoid huge payload crashes for this demo
-            if (file.size > 2 * 1024 * 1024) {
-                toast.error('Image is too large. Please select a file under 2MB.');
+            if (file.size > 10 * 1024 * 1024) {
+                toast.error('Image is too large. Please select a file under 10MB.');
                 return;
             }
+            setImageFile(file);
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setForm({ ...form, imageUrl: reader.result as string });
-            };
+            reader.onloadend = () => setImagePreview(reader.result as string);
             reader.readAsDataURL(file);
         }
     };
@@ -54,10 +54,20 @@ export default function NewReportPage() {
         setLoading(true);
 
         try {
+            let imageUrl = '';
+            if (imageFile) {
+                const fd = new FormData();
+                fd.append('file', imageFile);
+                fd.append('folder', 'reports');
+                const uploadRes = await fetch('/api/upload', { method: 'POST', body: fd });
+                if (!uploadRes.ok) throw new Error('Image upload failed');
+                const uploadData = await uploadRes.json();
+                imageUrl = uploadData.url;
+            }
             const res = await fetch('/api/reports', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(form),
+                body: JSON.stringify({ ...form, imageUrl }),
             });
             const data = await res.json();
             if (res.ok) {
@@ -111,7 +121,7 @@ export default function NewReportPage() {
                                     onChange={handleImageChange}
                                     className="input-field file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100"
                                 />
-                                {form.imageUrl && (
+                                {imagePreview && (
                                     <p className="text-xs text-success-500 mt-2 font-medium">✓ Image attached successfully</p>
                                 )}
                             </div>

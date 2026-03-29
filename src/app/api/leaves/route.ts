@@ -23,12 +23,35 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Start date, end date, and reason are required' }, { status: 400 });
         }
 
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (end < start) {
+            return NextResponse.json({ error: 'End date cannot be before start date' }, { status: 400 });
+        }
+
+        // Check for overlapping APPROVED or PENDING leaves
+        const conflict = await prisma.leave.findFirst({
+            where: {
+                userId,
+                status: { in: ['APPROVED', 'PENDING'] },
+                startDate: { lte: end },
+                endDate: { gte: start },
+            },
+        });
+
+        if (conflict) {
+            return NextResponse.json({
+                error: `You already have a ${conflict.status.toLowerCase()} leave request overlapping these dates (${new Date(conflict.startDate).toLocaleDateString('en-IN')} – ${new Date(conflict.endDate).toLocaleDateString('en-IN')})`,
+            }, { status: 409 });
+        }
+
         const leave = await prisma.leave.create({
             data: {
                 userId,
                 type: type || 'FULL',
-                startDate: new Date(startDate),
-                endDate: new Date(endDate),
+                startDate: start,
+                endDate: end,
                 reason,
             },
             include: { user: { select: { name: true } } },
