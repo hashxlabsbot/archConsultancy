@@ -53,13 +53,16 @@ export async function POST(req: NextRequest) {
             if (project) {
                 const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
                 if (admins.length > 0) {
-                    const notifications = admins.map((admin: any) => ({
-                        userId: admin.id,
-                        title: 'New Project Report',
-                        message: `${userName} submitted a daily report for project "${project.name}".`,
-                        link: '/reports',
-                    }));
-                    await prisma.notification.createMany({ data: notifications });
+                    await Promise.all(admins.map((admin: any) =>
+                        prisma.notification.create({
+                            data: {
+                                userId: admin.id,
+                                title: 'New Project Report',
+                                message: `${userName} submitted a daily report for project "${project.name}".`,
+                                link: '/reports',
+                            }
+                        })
+                    ));
                 }
             }
         }

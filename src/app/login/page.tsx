@@ -150,39 +150,6 @@ export default function LoginPage() {
                         </form>
                     </div>
                 </div>
-
-                {/* Demo credentials outside card for cleaner look */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 0.5 }}
-                    className="mt-6 text-center"
-                >
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3">Quick Demo Access</p>
-                    <div className="flex justify-center gap-2 flex-wrap">
-                        <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, email: 'admin@archconsultancy.com', password: 'admin123' })}
-                            className="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100 transition-colors"
-                        >
-                            Admin
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, email: 'manager@archconsultancy.com', password: 'manager123' })}
-                            className="px-3 py-1.5 rounded-lg bg-sky-50 text-sky-700 text-xs font-semibold hover:bg-sky-100 transition-colors"
-                        >
-                            Manager
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => setFormData({ ...formData, email: 'priya@archconsultancy.com', password: 'employee123' })}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100 transition-colors"
-                        >
-                            Employee
-                        </button>
-                    </div>
-                </motion.div>
             </motion.div>
         </div>
     );
