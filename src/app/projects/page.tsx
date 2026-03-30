@@ -20,14 +20,16 @@ export default function ProjectsPage() {
     const { data: session } = useSession();
     const [projects, setProjects] = useState<any[]>([]);
     const [search, setSearch] = useState('');
+    const [statusTab, setStatusTab] = useState<'RUNNING' | 'COMPLETED'>('RUNNING');
     const [showForm, setShowForm] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [form, setForm] = useState({ name: '', client: '', startDate: '', endDate: '', description: '', location: '', latitude: '', longitude: '', contactName: '', contactPhone: '', contactEmail: '' });
+    const [form, setForm] = useState({ name: '', client: '', startDate: '', endDate: '', description: '', location: '', latitude: '', longitude: '', contactName: '', contactPhone: '', contactEmail: '', status: 'RUNNING' });
     const role = (session?.user as any)?.role;
 
     useEffect(() => { fetchProjects(); }, [search]);
 
     const fetchProjects = async () => {
+        setLoading(true);
         try {
             const params = new URLSearchParams();
             if (search) params.set('search', search);
@@ -50,7 +52,7 @@ export default function ProjectsPage() {
             if (res.ok) {
                 toast.success('Project created!');
                 setShowForm(false);
-                setForm({ name: '', client: '', startDate: '', endDate: '', description: '', location: '', latitude: '', longitude: '', contactName: '', contactPhone: '', contactEmail: '' });
+                setForm({ name: '', client: '', startDate: '', endDate: '', description: '', location: '', latitude: '', longitude: '', contactName: '', contactPhone: '', contactEmail: '', status: 'RUNNING' });
                 fetchProjects();
             } else {
                 const data = await res.json();
@@ -58,6 +60,14 @@ export default function ProjectsPage() {
             }
         } catch (err) { toast.error('Failed'); }
     };
+
+    const filteredProjects = projects.filter(p => {
+        if (statusTab === 'RUNNING') return p.status === 'RUNNING' || p.status === 'ACTIVE';
+        return p.status === 'COMPLETED';
+    });
+
+    const runningCount = projects.filter(p => p.status === 'RUNNING' || p.status === 'ACTIVE').length;
+    const completedCount = projects.filter(p => p.status === 'COMPLETED').length;
 
     return (
         <DashboardLayout>
@@ -74,6 +84,26 @@ export default function ProjectsPage() {
                     )}
                 </div>
 
+                {/* Tabs */}
+                <div className="flex gap-4 border-b border-gray-200">
+                    <button
+                        onClick={() => setStatusTab('RUNNING')}
+                        className={`pb-3 text-sm font-semibold transition-colors relative ${statusTab === 'RUNNING' ? 'text-emerald-600' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        Running Projects ({runningCount})
+                        {statusTab === 'RUNNING' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600" />}
+                    </button>
+                    <button
+                        onClick={() => setStatusTab('COMPLETED')}
+                        className={`pb-3 text-sm font-semibold transition-colors relative ${statusTab === 'COMPLETED' ? 'text-blue-600' : 'text-slate-500 hover:text-slate-700'
+                            }`}
+                    >
+                        Completed Projects ({completedCount})
+                        {statusTab === 'COMPLETED' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600" />}
+                    </button>
+                </div>
+
                 {/* Search */}
                 <div className="relative">
                     <HiOutlineMagnifyingGlass className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -84,9 +114,16 @@ export default function ProjectsPage() {
                 {showForm && (
                     <motion.form initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} onSubmit={handleCreate} className="glass-card p-6 space-y-4">
                         <h3 className="text-lg font-semibold text-slate-900">Create New Project</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div><label className="input-label">Project Name</label><input className="input-field" placeholder="Green Valley Residences" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
                             <div><label className="input-label">Client</label><input className="input-field" placeholder="Sunrise Developers" value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} required /></div>
+                            <div>
+                                <label className="input-label">Status</label>
+                                <select className="input-field" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                                    <option value="RUNNING">Running</option>
+                                    <option value="COMPLETED">Completed</option>
+                                </select>
+                            </div>
                             <div><label className="input-label">Start Date</label><input type="date" className="input-field" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required /></div>
                             <div><label className="input-label">End Date</label><input type="date" className="input-field" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} /></div>
                         </div>
@@ -117,7 +154,7 @@ export default function ProjectsPage() {
 
                 {/* Project Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {projects.map((project, index) => (
+                    {filteredProjects.map((project, index) => (
                         <motion.div key={project.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
                             <Link href={`/projects/${project.id}`}>
                                 <div className="glass-card-hover p-5 h-full">
@@ -125,7 +162,9 @@ export default function ProjectsPage() {
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center">
                                             <HiOutlineFolderOpen className="w-5 h-5 text-slate-900" />
                                         </div>
-                                        <span className={`badge ${getStatusBadgeColor(project.status)}`}>{project.status}</span>
+                                        <span className={`badge ${getStatusBadgeColor(project.status)}`}>
+                                            {project.status === 'ACTIVE' || project.status === 'RUNNING' ? 'Running' : 'Completed'}
+                                        </span>
                                     </div>
                                     <h3 className="text-slate-900 font-semibold mb-1">{project.name}</h3>
                                     <p className="text-sm text-slate-500 mb-3">{project.client}</p>
@@ -142,6 +181,12 @@ export default function ProjectsPage() {
                         </motion.div>
                     ))}
                 </div>
+                {filteredProjects.length === 0 && !loading && (
+                    <div className="text-center py-12">
+                        <HiOutlineFolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500">No {statusTab.toLowerCase()} projects found</p>
+                    </div>
+                )}
                 {projects.length === 0 && !loading && (
                     <div className="text-center py-12">
                         <HiOutlineFolderOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />

@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { projectId, date, latitude, longitude, address, notes, photoUrls } = body;
+        const { projectId, date, latitude, longitude, address, purpose, notes, photoUrls } = body;
 
         if (!projectId || !notes) {
             return NextResponse.json({ error: 'Project and Notes are required' }, { status: 400 });
@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
                 latitude,
                 longitude,
                 address,
+                purpose: purpose || 'Site Visit',
                 notes,
                 photoUrls: photoUrls ? JSON.stringify(photoUrls) : null,
             },
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
                 const notifications = admins.map((admin: any) => ({
                     userId: admin.id,
                     title: 'New Site Visit Logged',
-                    message: `${session.user.name} logged a site visit for project "${project.name}".`,
+                    message: `${session.user.name} logged a ${purpose || 'site'} visit for project "${project.name}".`,
                     link: '/site-visits',
                 }));
                 await prisma.notification.createMany({ data: notifications });

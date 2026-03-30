@@ -94,7 +94,7 @@ export default function ReportsPage() {
                                 {report.imageUrl && (
                                     <div>
                                         <p className="text-xs text-slate-500 font-medium mb-2">Attached Image</p>
-                                        <img src={report.imageUrl} alt="Attached to report" className="w-full max-w-sm rounded-xl border border-slate-200 object-cover" />
+                                        <img src={`/api/blob?url=${encodeURIComponent(report.imageUrl)}`} alt="Attached to report" className="w-full max-w-sm rounded-xl border border-slate-200 object-cover" />
                                     </div>
                                 )}
                                 {report.managerComment && (

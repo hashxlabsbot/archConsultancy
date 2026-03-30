@@ -28,7 +28,8 @@ import { formatTime, formatDate } from '@/lib/utils';
 interface DashboardData {
     stats: {
         totalEmployees: number;
-        activeProjects: number;
+        runningProjects: number;
+        completedProjects: number;
         todayAttendance: number;
         pendingLeaves: number;
         missedReports: number;
@@ -184,9 +185,17 @@ export default function DashboardPage() {
             bg: 'from-indigo-50 to-indigo-100/50',
         }] : []),
         {
-            label: 'Active Projects',
-            value: data?.stats.activeProjects ?? '—',
+            label: 'Running Projects',
+            value: data?.stats.runningProjects ?? '—',
             icon: HiOutlineFolderOpen,
+            iconClass: 'icon-sq-emerald',
+            accent: '#10b981',
+            bg: 'from-emerald-50 to-emerald-100/50',
+        },
+        {
+            label: 'Completed Projects',
+            value: data?.stats.completedProjects ?? '—',
+            icon: HiOutlineCheckCircle,
             iconClass: 'icon-sq-sky',
             accent: '#0ea5e9',
             bg: 'from-sky-50 to-sky-100/50',
@@ -258,7 +267,9 @@ export default function DashboardPage() {
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                             {formatDate(new Date())}
                         </div>
-                        <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white mb-2 sm:mb-3 tracking-tight drop-shadow-lg" style={{ fontFamily: 'Manrope, sans-serif' }}>
+
+
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white leading-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
                             Welcome back, {firstName}.
                         </h1>
                         <p className="text-indigo-100/90 text-sm sm:text-base max-w-lg font-medium leading-relaxed drop-shadow-md">
@@ -280,7 +291,7 @@ export default function DashboardPage() {
                 </motion.div>
 
                 {/* ── STAT CARDS ── */}
-                <motion.div variants={itemVariants} className={`grid grid-cols-1 sm:grid-cols-2 ${statCards.length > 2 ? 'lg:grid-cols-4' : 'lg:grid-cols-2'} gap-4`}>
+                <motion.div variants={itemVariants} className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4`}>
                     {statCards.map((stat, idx) => (
                         <motion.div
                             key={stat.label}
@@ -634,7 +645,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* ── Compliance Alert ── */}
-                {data?.stats.missedReports && data.stats.missedReports > 0 && (role === 'SENIOR' || role === 'ADMIN') && (
+                {data?.stats && (data.stats.missedReports ?? 0) > 0 && (role === 'SENIOR' || role === 'ADMIN') && (
                     <motion.div variants={itemVariants} className="flex items-center gap-4 p-5 bg-rose-50 border border-rose-200 rounded-2xl">
                         <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center flex-shrink-0">
                             <HiOutlineExclamationTriangle className="w-5 h-5 text-rose-500" />

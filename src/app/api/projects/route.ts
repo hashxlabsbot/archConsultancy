@@ -69,7 +69,8 @@ export async function POST(req: NextRequest) {
             longitude,
             contactName,
             contactPhone,
-            contactEmail
+            contactEmail,
+            status = 'RUNNING'
         } = await req.json();
 
         if (!name || !client || !startDate) {
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
                 contactName: contactName || null,
                 contactPhone: contactPhone || null,
                 contactEmail: contactEmail || null,
+                status,
                 ownerId: (session.user as any).id,
             },
             include: {

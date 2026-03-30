@@ -32,7 +32,7 @@ const menuItems = [
     { path: '/admin-attendance', label: 'Attendance & Reports', icon: HiOutlineClock, roles: ['ADMIN'] },
     { path: '/attendance', label: 'Attendance', icon: HiOutlineClock, roles: [...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
     { path: '/site-logs', label: 'Daily Site Log', icon: HiOutlineWrenchScrewdriver, roles: ['ADMIN', 'SITE_SUPERVISOR', ...REGULAR_ROLES] },
-    { path: '/site-visits', label: 'Site Visits', icon: HiOutlineMapPin, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
+    { path: '/site-visits', label: 'Field Visits', icon: HiOutlineMapPin, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/reports', label: 'Daily Reports', icon: HiOutlineDocumentText, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
     { path: '/admin/salary', label: 'Salary Setup', icon: HiOutlineCurrencyRupee, roles: ['ADMIN'] },
@@ -86,18 +86,20 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
 
             {/* Logo */}
             <div className={`relative z-10 flex items-center gap-3 px-4 py-5 border-b border-slate-100/80 backdrop-blur-sm bg-white/50 ${collapsed ? 'justify-center' : ''}`}>
-                <div className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center relative"
-                    style={{ background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', boxShadow: '0 4px 12px rgba(99,102,241,0.35)' }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M3 21H21M3 21V8L12 3L21 8V21M9 21V15H15V21M9 12H10M14 12H15M9 9H10M14 9H15" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
+                <div className={`flex flex-col items-start gap-1 ${collapsed ? 'items-center' : ''} flex-1`}>
+                    <div className={`flex-shrink-0 ${collapsed ? 'w-10 h-10' : 'w-52 h-20'} flex items-center justify-start relative`}>
+                        <img src="/logo.png" alt="Arch Consultancy" className="h-full object-contain" />
+                    </div>
+                    {!collapsed && (
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="text-[13px] font-bold text-slate-500 uppercase tracking-[0.25em] pl-1"
+                        >
+                            Management Portal
+                        </motion.p>
+                    )}
                 </div>
-                {!collapsed && (
-                    <motion.div initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>Arch Consultancy</p>
-                        <p className="text-xs text-slate-400">Management Portal</p>
-                    </motion.div>
-                )}
                 {/* Mobile close button */}
                 <button onClick={() => setIsMobileOpen(false)} className="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors ml-auto">
                     <HiOutlineXMark className="w-5 h-5" />

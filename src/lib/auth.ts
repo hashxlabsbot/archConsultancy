@@ -52,10 +52,10 @@ export const authOptions: NextAuthOptions = {
         },
         async session({ session, token }) {
             if (session.user && token.id) {
-                // Verify user still exists in DB (crucial when DB is seeded/wiped)
+                // Verify user still exists in DB and get latest name/role
                 const dbUser = await prisma.user.findUnique({
                     where: { id: token.id as string },
-                    select: { role: true },
+                    select: { name: true, role: true },
                 });
 
                 if (!dbUser) {
@@ -65,6 +65,7 @@ export const authOptions: NextAuthOptions = {
 
                 (session.user as any).id = token.id;
                 (session.user as any).role = dbUser.role;
+                (session.user as any).name = dbUser.name;
             }
             return session;
         },

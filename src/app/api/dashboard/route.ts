@@ -17,9 +17,10 @@ export async function GET(req: NextRequest) {
         today.setHours(0, 0, 0, 0);
 
         // Common stats
-        const [totalEmployees, activeProjects, todayAttendance, pendingLeaves] = await Promise.all([
+        const [totalEmployees, runningProjects, completedProjects, todayAttendance, pendingLeaves] = await Promise.all([
             prisma.user.count(),
-            prisma.project.count({ where: { status: 'ACTIVE' } }),
+            prisma.project.count({ where: { status: { in: ['ACTIVE', 'RUNNING'] } } }),
+            prisma.project.count({ where: { status: 'COMPLETED' } }),
             prisma.attendance.count({ where: { date: { gte: today } } }),
             prisma.leave.count({ where: { status: 'PENDING' } }),
         ]);
@@ -79,7 +80,7 @@ export async function GET(req: NextRequest) {
         });
 
         return NextResponse.json({
-            stats: { totalEmployees, activeProjects, todayAttendance, pendingLeaves, missedReports },
+            stats: { totalEmployees, runningProjects, completedProjects, todayAttendance, pendingLeaves, missedReports },
             myAttendance,
             myLeaveBalance,
             recentReports,

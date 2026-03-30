@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import KanbanBoard from '@/components/projects/KanbanBoard';
 import { motion } from 'framer-motion';
@@ -23,7 +24,9 @@ import toast from 'react-hot-toast';
 export default function ProjectDetailPage() {
     const params = useParams();
     const id = params.id as string;
+    const { data: session } = useSession();
     const [project, setProject] = useState<any>(null);
+    const role = (session?.user as any)?.role;
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [tags, setTags] = useState('');
@@ -162,7 +165,35 @@ export default function ProjectDetailPage() {
                                 <p className="text-slate-500">{project.client}</p>
                             </div>
                         </div>
-                        <span className={`badge text-sm ${getStatusBadgeColor(project.status)}`}>{project.status}</span>
+                        <div className="flex items-center gap-3">
+                            {(role === 'ADMIN' || role === 'SENIOR') && (
+                                <button
+                                    onClick={async () => {
+                                        const newStatus = (project.status === 'RUNNING' || project.status === 'ACTIVE') ? 'COMPLETED' : 'RUNNING';
+                                        try {
+                                            const res = await fetch(`/api/projects/${id}`, {
+                                                method: 'PATCH',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ status: newStatus }),
+                                            });
+                                            if (res.ok) {
+                                                toast.success(`Project marked as ${newStatus.toLowerCase()}`);
+                                                fetchProject();
+                                            }
+                                        } catch (e) { toast.error('Failed to update status'); }
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all border shadow-sm ${(project.status === 'RUNNING' || project.status === 'ACTIVE')
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                        }`}
+                                >
+                                    {(project.status === 'RUNNING' || project.status === 'ACTIVE') ? 'Mark as Completed' : 'Mark as Running'}
+                                </button>
+                            )}
+                            <span className={`badge text-sm ${getStatusBadgeColor(project.status)}`}>
+                                {project.status === 'ACTIVE' || project.status === 'RUNNING' ? 'Running' : 'Completed'}
+                            </span>
+                        </div>
                     </div>
                     {project.description && <p className="text-slate-500 text-sm mb-4">{project.description}</p>}
                     <div className="flex flex-wrap gap-4 text-sm text-slate-500">

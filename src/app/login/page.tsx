@@ -66,21 +66,17 @@ export default function LoginPage() {
                 <div className="glass-card shadow-card-hover rounded-3xl overflow-hidden p-[2px]">
                     {/* Inner glowing container border trick */}
                     <div className="bg-white rounded-[22px] p-8 h-full relative z-10">
-                        {/* Logo & Header */}
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: 0.2, duration: 0.5 }}
                             className="text-center mb-8"
                         >
-                            <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
-                                style={{ background: 'linear-gradient(135deg, #6366f1, #38bdf8)', boxShadow: '0 8px 24px rgba(99,102,241,0.25)' }}>
-                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M3 21H21M3 21V8L12 3L21 8V21M9 21V15H15V21M9 12H10M14 12H15M9 9H10M14 9H15" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
+                            <div className="mx-auto w-48 h-20 flex items-center justify-center mb-6">
+                                <img src="/logo.png" alt="Arch Consultancy Logo" className="w-full h-full object-contain" />
                             </div>
-                            <h1 className="text-[26px] font-extrabold text-slate-900 mb-1.5" style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.03em' }}>
-                                Arch <span className="text-primary-600">Portal</span>
+                            <h1 className="text-[22px] font-extrabold text-slate-900 mb-1.5 uppercase tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                Employee <span className="text-primary-600">Portal</span>
                             </h1>
                             <p className="text-slate-500 text-sm font-medium">Log in to your workspace</p>
                         </motion.div>

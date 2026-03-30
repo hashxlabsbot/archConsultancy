@@ -222,16 +222,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <div className="min-h-screen flex items-center justify-center" style={{ background: '#f5f6fa' }}>
                 <div className="flex flex-col items-center gap-4">
                     <div className="relative">
-                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                            style={{ background: 'linear-gradient(135deg, #6366f1, #0ea5e9)', boxShadow: '0 8px 24px rgba(99,102,241,0.3)' }}>
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M3 21H21M3 21V8L12 3L21 8V21M9 21V15H15V21M9 12H10M14 12H15M9 9H10M14 9H15" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                        <div className="w-48 h-24 flex items-center justify-center mb-4">
+                            <img src="/logo.png" alt="Arch Consultancy" className="w-full h-full object-contain" />
                         </div>
                     </div>
                     <div className="text-center">
-                        <p className="text-base font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>Arch Consultancy</p>
-                        <p className="text-sm text-slate-400 mt-0.5">Loading your workspace...</p>
+                        <p className="text-sm text-slate-400 mt-0.5 font-medium tracking-wide">Loading your workspace...</p>
                     </div>
                     <div className="flex gap-1.5">
                         {[0, 1, 2].map(i => (

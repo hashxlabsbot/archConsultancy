@@ -72,6 +72,7 @@ export function getRoleDisplayName(role: string): string {
 export function getStatusBadgeColor(status: string): string {
     switch (status) {
         case 'ACTIVE':
+        case 'RUNNING':
         case 'APPROVED':
             return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
         case 'PENDING':
@@ -84,5 +85,19 @@ export function getStatusBadgeColor(status: string): string {
             return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
         default:
             return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+    }
+}
+
+export function getProjectStatusDisplayName(status: string): string {
+    switch (status) {
+        case 'ACTIVE':
+        case 'RUNNING':
+            return 'Running';
+        case 'COMPLETED':
+            return 'Completed';
+        case 'ON_HOLD':
+            return 'On Hold';
+        default:
+            return status;
     }
 }

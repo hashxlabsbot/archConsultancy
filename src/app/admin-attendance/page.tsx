@@ -294,7 +294,7 @@ export default function AdminAttendancePage() {
                                     <div>
                                         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Attached Image</h4>
                                         <div className="rounded-xl overflow-hidden border border-slate-200">
-                                            <img src={selectedReport.imageUrl} alt="Report Attachment" className="w-full h-auto object-cover max-h-[400px]" />
+                                            <img src={`/api/blob?url=${encodeURIComponent(selectedReport.imageUrl)}`} alt="Report Attachment" className="w-full h-auto object-cover max-h-[400px]" />
                                         </div>
                                     </div>
                                 )}

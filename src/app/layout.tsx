@@ -20,6 +20,10 @@ const manrope = Manrope({
 export const metadata: Metadata = {
     title: 'Arch Consultancy | Employee & Project Management',
     description: 'Premium employee and project management portal for Arch Consultancy',
+    icons: {
+        icon: '/favicon.png',
+        apple: '/logo.png',
+    }
 };
 
 export default function RootLayout({

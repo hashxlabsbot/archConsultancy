@@ -192,6 +192,7 @@ model SiteVisit {
   latitude  Float?
   longitude Float?
   address   String?
+  purpose   String?  @default("Site Visit") // Survey, Meeting, Inspection, Audit
   notes     String
   photoUrls String? // JSON stringified array of base64 strings
   status    String   @default("PENDING") // PENDING, REVIEWED

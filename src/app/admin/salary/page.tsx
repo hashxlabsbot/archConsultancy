@@ -284,15 +284,15 @@ export default function AdminSalaryPage() {
                                     <div className="grid grid-cols-3 gap-4">
                                         <div>
                                             <label className="input-label">Basic Salary (₹)</label>
-                                            <input type="number" required min="0" className="input-field" value={formData.basicSalary} onChange={e => setFormData({ ...formData, basicSalary: Number(e.target.value) })} />
+                                            <input type="number" required min="0" className="input-field" value={formData.basicSalary} onFocus={(e) => e.target.select()} onChange={e => setFormData({ ...formData, basicSalary: Number(e.target.value) })} />
                                         </div>
                                         <div>
                                             <label className="input-label">HRA % of Basic</label>
-                                            <input type="number" required min="0" max="100" className="input-field" value={formData.hraRate} onChange={e => setFormData({ ...formData, hraRate: Number(e.target.value) })} />
+                                            <input type="number" required min="0" max="100" className="input-field" value={formData.hraRate} onFocus={(e) => e.target.select()} onChange={e => setFormData({ ...formData, hraRate: Number(e.target.value) })} />
                                         </div>
                                         <div>
                                             <label className="input-label">DA % of Basic</label>
-                                            <input type="number" required min="0" max="100" className="input-field" value={formData.daRate} onChange={e => setFormData({ ...formData, daRate: Number(e.target.value) })} />
+                                            <input type="number" required min="0" max="100" className="input-field" value={formData.daRate} onFocus={(e) => e.target.select()} onChange={e => setFormData({ ...formData, daRate: Number(e.target.value) })} />
                                         </div>
                                     </div>
                                 </div>
@@ -302,7 +302,7 @@ export default function AdminSalaryPage() {
                                         {[['medicalAllowance', 'Medical (₹)'], ['mobileAllowance', 'Mobile (₹)'], ['travelAllowance', 'Travel (₹)'], ['seniorityAllowance', 'Seniority (₹)']].map(([key, label]) => (
                                             <div key={key}>
                                                 <label className="input-label">{label}</label>
-                                                <input type="number" required min="0" className="input-field" value={(formData as any)[key]} onChange={e => setFormData({ ...formData, [key]: Number(e.target.value) })} />
+                                                <input type="number" required min="0" className="input-field" value={(formData as any)[key]} onFocus={(e) => e.target.select()} onChange={e => setFormData({ ...formData, [key]: Number(e.target.value) })} />
                                             </div>
                                         ))}
                                     </div>
@@ -312,7 +312,7 @@ export default function AdminSalaryPage() {
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
                                             <label className="input-label">Incentive Rate (% of Basic/yr)</label>
-                                            <input type="number" required min="0" max="100" className="input-field" value={formData.annualIncentiveRate} onChange={e => setFormData({ ...formData, annualIncentiveRate: Number(e.target.value) })} />
+                                            <input type="number" required min="0" max="100" className="input-field" value={formData.annualIncentiveRate} onFocus={(e) => e.target.select()} onChange={e => setFormData({ ...formData, annualIncentiveRate: Number(e.target.value) })} />
                                         </div>
                                         <div>
                                             <label className="input-label">Payout Month</label>

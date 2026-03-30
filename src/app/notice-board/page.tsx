@@ -161,11 +161,16 @@ export default function NoticeBoardPage() {
             >
                 {/* Header */}
                 <motion.div variants={itemVariants} className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                            Notice Board
-                        </h1>
-                        <p className="text-sm text-slate-500 mt-0.5">Official announcements from management</p>
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-10 flex items-center justify-center bg-white/50 rounded-lg p-1">
+                            <img src="/logo.png" alt="Arch Consultancy" className="w-full h-full object-contain" />
+                        </div>
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                Notice Board
+                            </h1>
+                            <p className="text-sm text-slate-500 mt-0.5">Official announcements from management</p>
+                        </div>
                     </div>
                     {isAdmin && (
                         <motion.button

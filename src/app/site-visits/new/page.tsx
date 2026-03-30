@@ -16,6 +16,7 @@ export default function NewSiteVisitPage() {
 
     const [formData, setFormData] = useState({
         projectId: '',
+        purpose: 'Site Inspection',
         notes: '',
         latitude: null as number | null,
         longitude: null as number | null,
@@ -123,18 +124,32 @@ export default function NewSiteVisitPage() {
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5 sm:p-6">
                 <div className="mb-6 border-b border-gray-100 pb-4">
-                    <h1 className="text-xl font-bold text-slate-900">Log Site Visit</h1>
+                    <h1 className="text-xl font-bold text-slate-900">Log Field Visit</h1>
                     <p className="text-sm text-slate-500">Record a new site visit with GPS check-in and photos.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Project */}
-                    <div>
-                        <label className="input-label">Select Project</label>
-                        <select className="input-field" value={formData.projectId} onChange={e => setFormData({ ...formData, projectId: e.target.value })} required>
-                            <option value="" disabled>Choose a project...</option>
-                            {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
+                    {/* Project & Purpose */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label className="input-label">Select Project</label>
+                            <select className="input-field" value={formData.projectId} onChange={e => setFormData({ ...formData, projectId: e.target.value })} required>
+                                <option value="" disabled>Choose a project...</option>
+                                {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="input-label">Purpose of Visit</label>
+                            <select className="input-field" value={formData.purpose} onChange={e => setFormData({ ...formData, purpose: e.target.value })} required>
+                                <option value="Site Inspection">Site Inspection</option>
+                                <option value="Client Meeting">Client Meeting</option>
+                                <option value="Site Survey">Site Survey</option>
+                                <option value="Quality Check">Quality Check</option>
+                                <option value="Progress Audit">Progress Audit</option>
+                                <option value="Material Verification">Material Verification</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
                     </div>
 
                     {/* Location */}
