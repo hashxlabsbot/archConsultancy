@@ -83,7 +83,7 @@ interface Notice {
 
 export default function NoticeBoardPage() {
     const { data: session } = useSession();
-    const role = (session?.user as any)?.role || 'EMPLOYEE';
+    const role = (session?.user as any)?.role || 'JUNIOR';
     const isAdmin = role === 'ADMIN';
 
     const [notices, setNotices] = useState<Notice[]>([]);

@@ -22,7 +22,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
 
         const sessionRole = (session.user as any).role;
         const sessionUserId = (session.user as any).id;
-        if (sessionRole !== 'ADMIN' && sessionRole !== 'MANAGER' && project.ownerId !== sessionUserId) {
+        if (sessionRole !== 'ADMIN' && sessionRole !== 'SENIOR' && project.ownerId !== sessionUserId) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 

@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
         let myAttendance = null;
         let myLeaveBalance = null;
 
-        if (role === 'EMPLOYEE' || role === 'SITE_ENGINEER') {
+        if (role !== 'ADMIN' && role !== 'SENIOR') {
             myAttendance = await prisma.attendance.findFirst({
                 where: { userId, date: { gte: today } },
                 include: { reports: true },
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         let recentReports: any[] = [];
         let teamAttendance: any[] = [];
 
-        if (role === 'MANAGER' || role === 'ADMIN') {
+        if (role === 'SENIOR' || role === 'ADMIN') {
             recentReports = await prisma.report.findMany({
                 take: 10,
                 orderBy: { submittedAt: 'desc' },

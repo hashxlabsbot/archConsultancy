@@ -78,7 +78,7 @@ export async function GET(req: NextRequest) {
         }
         if (role) where.role = role;
 
-        const isPrivileged = session.user.role === 'ADMIN' || session.user.role === 'MANAGER';
+        const isPrivileged = session.user.role === 'ADMIN' || session.user.role === 'SENIOR';
 
         const users = await prisma.user.findMany({
             where,

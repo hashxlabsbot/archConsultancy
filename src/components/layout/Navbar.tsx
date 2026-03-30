@@ -64,7 +64,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     const [passwordLoading, setPasswordLoading] = useState(false);
 
     const user = session?.user;
-    const role = (user as any)?.role || 'EMPLOYEE';
+    const role = (user as any)?.role || 'JUNIOR';
 
     useEffect(() => {
         if (user && role !== 'ADMIN') {
@@ -106,7 +106,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                         reportSubmitted: !!att.reportSubmitted,
                         checkedOut: !!att.checkOut
                     });
-                    if (att.checkIn && !att.reportSubmitted && !att.checkOut && role === 'EMPLOYEE') {
+                    if (att.checkIn && !att.reportSubmitted && !att.checkOut && role !== 'ADMIN' && role !== 'SITE_SUPERVISOR' && role !== 'NON_TECHNICAL') {
                         setCanLogout(false);
                     } else {
                         setCanLogout(true);
@@ -180,7 +180,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     };
 
     const handleLogout = async () => {
-        if (!canLogout && role === 'EMPLOYEE') {
+        if (!canLogout && role !== 'ADMIN' && role !== 'SITE_SUPERVISOR' && role !== 'NON_TECHNICAL') {
             toast.error('Please submit your daily report before logging out!', { icon: '🔒', duration: 5000 });
             return;
         }
@@ -227,7 +227,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                                         <HiOutlineClock className="w-4 h-4" /> Check In
                                     </Link>
                                 ) : !attendanceState.reportSubmitted ? (
-                                    <Link href={role === 'SITE_ENGINEER' ? '/site-logs' : '/reports'} className="btn-primary py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors">
+                                    <Link href={role === 'SITE_SUPERVISOR' ? '/site-logs' : '/reports'} className="btn-primary py-1.5 px-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors">
                                         <HiOutlineDocumentText className="w-4 h-4" /> Submit Report
                                     </Link>
                                 ) : !attendanceState.checkedOut ? (
@@ -243,7 +243,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                         )}
 
                         {/* Report warning */}
-                        {!canLogout && role === 'EMPLOYEE' && (
+                        {!canLogout && role !== 'ADMIN' && role !== 'SITE_SUPERVISOR' && role !== 'NON_TECHNICAL' && (
                             <motion.div
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
@@ -383,11 +383,11 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={handleLogout}
-                            className={`p-2.5 rounded-xl transition-all ${!canLogout && role === 'EMPLOYEE'
+                            className={`p-2.5 rounded-xl transition-all ${!canLogout && role !== 'ADMIN' && role !== 'SITE_SUPERVISOR' && role !== 'NON_TECHNICAL'
                                 ? 'text-slate-300 cursor-not-allowed'
                                 : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50'
                                 }`}
-                            title={!canLogout && role === 'EMPLOYEE' ? 'Submit daily report to log out' : 'Log out'}
+                            title={!canLogout && role !== 'ADMIN' && role !== 'SITE_SUPERVISOR' && role !== 'NON_TECHNICAL' ? 'Submit daily report to log out' : 'Log out'}
                         >
                             <HiOutlineArrowRightOnRectangle className="w-5 h-5" />
                         </motion.button>

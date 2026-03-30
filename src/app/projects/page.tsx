@@ -67,7 +67,7 @@ export default function ProjectsPage() {
                         <h1 className="text-2xl font-bold text-slate-900">Projects</h1>
                         <p className="text-slate-500 mt-1">Manage architecture projects and documentation</p>
                     </div>
-                    {role !== 'EMPLOYEE' && (
+                    {(role === 'ADMIN' || role === 'SENIOR') && (
                         <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-2">
                             <HiOutlinePlus className="w-4 h-4" /> New Project
                         </button>

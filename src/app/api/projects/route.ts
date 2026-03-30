@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
         }
 
         const role = (session.user as any).role;
-        if (role === 'EMPLOYEE') {
-            return NextResponse.json({ error: 'Only managers and admins can create projects' }, { status: 403 });
+        if (role !== 'ADMIN' && role !== 'SENIOR') {
+            return NextResponse.json({ error: 'Only senior staff and admins can create projects' }, { status: 403 });
         }
 
         const {

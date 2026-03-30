@@ -43,7 +43,7 @@ interface EOMRecord {
 
 export default function EmployeeOfTheMonthPage() {
     const { data: session } = useSession();
-    const role = (session?.user as any)?.role || 'EMPLOYEE';
+    const role = (session?.user as any)?.role || 'JUNIOR';
     const isAdmin = role === 'ADMIN';
 
     const [current, setCurrent] = useState<EOMRecord | null>(null);
@@ -143,7 +143,9 @@ export default function EmployeeOfTheMonthPage() {
     };
 
     const roleLabel: Record<string, string> = {
-        MANAGER: 'Manager', EMPLOYEE: 'Employee', SITE_ENGINEER: 'Site Engineer',
+        ADMIN: 'Principal Architect', SENIOR: 'Senior', JUNIOR: 'Junior',
+        TRAINEE: 'Trainee', INTERN: 'Intern', SITE_SUPERVISOR: 'Site Supervisor',
+        SITE_ENGINEER: 'Site Engineer', NON_TECHNICAL: 'Non Technical',
     };
 
     return (

@@ -33,8 +33,9 @@ export default function SiteLogsPage() {
 
     // Form state
     const [selectedProject, setSelectedProject] = useState('');
-    const [labourCount, setLabourCount] = useState(0);
-    const [mistriCount, setMistriCount] = useState(0);
+    const [masonCount, setMasonCount] = useState(0);
+    const [coolieCount, setCoolieCount] = useState(0);
+    const [helperCount, setHelperCount] = useState(0);
     const [notes, setNotes] = useState('');
     const [mediaFiles, setMediaFiles] = useState<File[]>([]);
     const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
@@ -138,8 +139,9 @@ export default function SiteLogsPage() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     projectId: selectedProject,
-                    labourCount,
-                    mistriCount,
+                    masonCount,
+                    coolieCount,
+                    helperCount,
                     notes,
                     mediaUrls,
                 }),
@@ -148,8 +150,9 @@ export default function SiteLogsPage() {
             if (res.ok) {
                 toast.success('Site log submitted successfully! 🏗️');
                 setShowForm(false);
-                setLabourCount(0);
-                setMistriCount(0);
+                setMasonCount(0);
+                setCoolieCount(0);
+                setHelperCount(0);
                 setNotes('');
                 setMediaFiles([]);
                 setMediaPreviews([]);
@@ -165,8 +168,8 @@ export default function SiteLogsPage() {
         }
     };
 
-    const isAdmin = role === 'ADMIN' || role === 'MANAGER';
-    const canSubmit = role === 'SITE_ENGINEER';
+    const isAdmin = role === 'ADMIN' || role === 'SENIOR';
+    const canSubmit = role === 'SITE_SUPERVISOR';
 
     if (loading) {
         return (
@@ -222,12 +225,12 @@ export default function SiteLogsPage() {
 
                 {/* Today's Summary Cards */}
                 {logs.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-5 flex items-start justify-between">
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Labour</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Mason</p>
                                 <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    {logs.reduce((sum, l) => sum + (l.labourCount || 0), 0)}
+                                    {logs.reduce((sum, l) => sum + (l.masonCount || 0), 0)}
                                 </p>
                             </div>
                             <div className="w-11 h-11 rounded-xl bg-orange-100 flex items-center justify-center">
@@ -236,9 +239,20 @@ export default function SiteLogsPage() {
                         </motion.div>
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.05 }} className="glass-card p-5 flex items-start justify-between">
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Mistri</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Coolie</p>
                                 <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    {logs.reduce((sum, l) => sum + (l.mistriCount || 0), 0)}
+                                    {logs.reduce((sum, l) => sum + (l.coolieCount || 0), 0)}
+                                </p>
+                            </div>
+                            <div className="w-11 h-11 rounded-xl bg-pink-100 flex items-center justify-center">
+                                <HiOutlineUserGroup className="w-5 h-5 text-pink-600" />
+                            </div>
+                        </motion.div>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.08 }} className="glass-card p-5 flex items-start justify-between">
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Helper</p>
+                                <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                    {logs.reduce((sum, l) => sum + (l.helperCount || 0), 0)}
                                 </p>
                             </div>
                             <div className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
@@ -307,20 +321,24 @@ export default function SiteLogsPage() {
                                         </span>
                                     </div>
 
-                                    {/* Labour Info */}
+                                    {/* Manpower Info */}
                                     <div className="p-5">
                                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                                             <div className="p-3 bg-orange-50 rounded-xl text-center border border-orange-100">
-                                                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1">Labourers</p>
-                                                <p className="text-2xl font-extrabold text-orange-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.labourCount}</p>
+                                                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1">Mason</p>
+                                                <p className="text-2xl font-extrabold text-orange-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.masonCount}</p>
+                                            </div>
+                                            <div className="p-3 bg-pink-50 rounded-xl text-center border border-pink-100">
+                                                <p className="text-[10px] font-bold text-pink-600 uppercase tracking-widest mb-1">Coolie</p>
+                                                <p className="text-2xl font-extrabold text-pink-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.coolieCount}</p>
                                             </div>
                                             <div className="p-3 bg-blue-50 rounded-xl text-center border border-blue-100">
-                                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Mistri</p>
-                                                <p className="text-2xl font-extrabold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.mistriCount}</p>
+                                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Helper</p>
+                                                <p className="text-2xl font-extrabold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.helperCount}</p>
                                             </div>
-                                            <div className="p-3 bg-emerald-50 rounded-xl text-center border border-emerald-100 sm:col-span-2">
-                                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Total Workforce</p>
-                                                <p className="text-2xl font-extrabold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.labourCount + log.mistriCount}</p>
+                                            <div className="p-3 bg-emerald-50 rounded-xl text-center border border-emerald-100">
+                                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Total</p>
+                                                <p className="text-2xl font-extrabold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.masonCount + log.coolieCount + log.helperCount}</p>
                                             </div>
                                         </div>
 
@@ -365,8 +383,9 @@ export default function SiteLogsPage() {
                                                 <button
                                                     onClick={() => {
                                                         setSelectedProject(log.projectId);
-                                                        setLabourCount(log.labourCount);
-                                                        setMistriCount(log.mistriCount);
+                                                        setMasonCount(log.masonCount);
+                                                        setCoolieCount(log.coolieCount);
+                                                        setHelperCount(log.helperCount);
                                                         setNotes(log.notes || '');
                                                         setMediaFiles([]);
                                                         setMediaPreviews([]);
@@ -446,41 +465,59 @@ export default function SiteLogsPage() {
                                     </select>
                                 </div>
 
-                                {/* Labour & Mistri Count */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                                            <HiOutlineUserGroup className="w-4 h-4 text-orange-500" /> Labourers
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <button type="button" onClick={() => setLabourCount(Math.max(0, labourCount - 1))}
-                                                className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-lg transition-colors">
-                                                −
-                                            </button>
-                                            <input type="number" min="0" value={labourCount} onChange={(e) => setLabourCount(parseInt(e.target.value) || 0)}
-                                                className="input-field shadow-sm text-center text-xl font-bold flex-1" />
-                                            <button type="button" onClick={() => setLabourCount(labourCount + 1)}
-                                                className="w-10 h-10 rounded-xl bg-orange-100 hover:bg-orange-200 text-orange-600 flex items-center justify-center font-bold text-lg transition-colors">
-                                                +
-                                            </button>
+                                {/* Manpower Count */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Manpower</label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {/* Mason */}
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                                                <HiOutlineWrenchScrewdriver className="w-3.5 h-3.5 text-orange-500" /> Mason
+                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                                <button type="button" onClick={() => setMasonCount(Math.max(0, masonCount - 1))}
+                                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition-colors flex-shrink-0">−</button>
+                                                <input type="number" min="0" value={masonCount} onChange={(e) => setMasonCount(parseInt(e.target.value) || 0)}
+                                                    className="input-field shadow-sm text-center font-bold flex-1 px-1" />
+                                                <button type="button" onClick={() => setMasonCount(masonCount + 1)}
+                                                    className="w-8 h-8 rounded-lg bg-orange-100 hover:bg-orange-200 text-orange-600 flex items-center justify-center font-bold transition-colors flex-shrink-0">+</button>
+                                            </div>
+                                        </div>
+                                        {/* Coolie */}
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                                                <HiOutlineUserGroup className="w-3.5 h-3.5 text-pink-500" /> Coolie
+                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                                <button type="button" onClick={() => setCoolieCount(Math.max(0, coolieCount - 1))}
+                                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition-colors flex-shrink-0">−</button>
+                                                <input type="number" min="0" value={coolieCount} onChange={(e) => setCoolieCount(parseInt(e.target.value) || 0)}
+                                                    className="input-field shadow-sm text-center font-bold flex-1 px-1" />
+                                                <button type="button" onClick={() => setCoolieCount(coolieCount + 1)}
+                                                    className="w-8 h-8 rounded-lg bg-pink-100 hover:bg-pink-200 text-pink-600 flex items-center justify-center font-bold transition-colors flex-shrink-0">+</button>
+                                            </div>
+                                        </div>
+                                        {/* Helper */}
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                                                <HiOutlineUserGroup className="w-3.5 h-3.5 text-blue-500" /> Helper
+                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                                <button type="button" onClick={() => setHelperCount(Math.max(0, helperCount - 1))}
+                                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition-colors flex-shrink-0">−</button>
+                                                <input type="number" min="0" value={helperCount} onChange={(e) => setHelperCount(parseInt(e.target.value) || 0)}
+                                                    className="input-field shadow-sm text-center font-bold flex-1 px-1" />
+                                                <button type="button" onClick={() => setHelperCount(helperCount + 1)}
+                                                    className="w-8 h-8 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 flex items-center justify-center font-bold transition-colors flex-shrink-0">+</button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
-                                            <HiOutlineWrenchScrewdriver className="w-4 h-4 text-blue-500" /> Mistri
-                                        </label>
-                                        <div className="flex items-center gap-2">
-                                            <button type="button" onClick={() => setMistriCount(Math.max(0, mistriCount - 1))}
-                                                className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold text-lg transition-colors">
-                                                −
-                                            </button>
-                                            <input type="number" min="0" value={mistriCount} onChange={(e) => setMistriCount(parseInt(e.target.value) || 0)}
-                                                className="input-field shadow-sm text-center text-xl font-bold flex-1" />
-                                            <button type="button" onClick={() => setMistriCount(mistriCount + 1)}
-                                                className="w-10 h-10 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-600 flex items-center justify-center font-bold text-lg transition-colors">
-                                                +
-                                            </button>
-                                        </div>
+                                    {/* Total */}
+                                    <div className="mt-3 p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
+                                        <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Total Workforce</span>
+                                        <span className="text-xl font-extrabold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                            {masonCount + coolieCount + helperCount}
+                                        </span>
                                     </div>
                                 </div>
 

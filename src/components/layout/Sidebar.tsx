@@ -25,21 +25,23 @@ import {
 } from 'react-icons/hi2';
 import { useState } from 'react';
 
+const REGULAR_ROLES = ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER', 'NON_TECHNICAL'];
+
 const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: HiOutlineHome, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
+    { path: '/dashboard', label: 'Dashboard', icon: HiOutlineHome, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
     { path: '/admin-attendance', label: 'Attendance & Reports', icon: HiOutlineClock, roles: ['ADMIN'] },
-    { path: '/attendance', label: 'Attendance', icon: HiOutlineClock, roles: ['MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
-    { path: '/site-logs', label: 'Daily Site Log', icon: HiOutlineWrenchScrewdriver, roles: ['ADMIN', 'SITE_ENGINEER', 'EMPLOYEE'] },
-    { path: '/site-visits', label: 'Site Visits', icon: HiOutlineMapPin, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
-    { path: '/reports', label: 'Daily Reports', icon: HiOutlineDocumentText, roles: ['MANAGER', 'EMPLOYEE'] },
-    { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
+    { path: '/attendance', label: 'Attendance', icon: HiOutlineClock, roles: [...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
+    { path: '/site-logs', label: 'Daily Site Log', icon: HiOutlineWrenchScrewdriver, roles: ['ADMIN', 'SITE_SUPERVISOR', ...REGULAR_ROLES] },
+    { path: '/site-visits', label: 'Site Visits', icon: HiOutlineMapPin, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
+    { path: '/reports', label: 'Daily Reports', icon: HiOutlineDocumentText, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
+    { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
     { path: '/admin/salary', label: 'Salary Setup', icon: HiOutlineCurrencyRupee, roles: ['ADMIN'] },
-    { path: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, roles: ['MANAGER', 'EMPLOYEE'] },
-    { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
-    { path: '/profile', label: 'My Profile', icon: HiOutlineUserCircle, roles: ['MANAGER', 'EMPLOYEE'] },
-    { path: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
-    { path: '/notice-board', label: 'Notice Board', icon: HiOutlineMegaphone, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
-    { path: '/employee-of-month', label: 'Employee of Month', icon: HiOutlineTrophy, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE', 'SITE_ENGINEER'] },
+    { path: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
+    { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
+    { path: '/profile', label: 'My Profile', icon: HiOutlineUserCircle, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
+    { path: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
+    { path: '/notice-board', label: 'Notice Board', icon: HiOutlineMegaphone, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
+    { path: '/employee-of-month', label: 'Employee of Month', icon: HiOutlineTrophy, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
     { path: '/admin', label: 'Settings', icon: HiOutlineCog6Tooth, roles: ['ADMIN'] },
 ];
 
@@ -52,7 +54,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
     const pathname = usePathname();
     const { data: session } = useSession();
     const [collapsed, setCollapsed] = useState(false);
-    const userRole = (session?.user as any)?.role || 'EMPLOYEE';
+    const userRole = (session?.user as any)?.role || 'JUNIOR';
     const userName = session?.user?.name || 'User';
     const initials = userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
@@ -60,9 +62,13 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
 
     const roleColors: Record<string, string> = {
         ADMIN: 'bg-violet-100 text-violet-700',
-        MANAGER: 'bg-sky-100 text-sky-700',
-        EMPLOYEE: 'bg-emerald-100 text-emerald-700',
-        SITE_ENGINEER: 'bg-orange-100 text-orange-700',
+        SENIOR: 'bg-sky-100 text-sky-700',
+        JUNIOR: 'bg-emerald-100 text-emerald-700',
+        TRAINEE: 'bg-teal-100 text-teal-700',
+        INTERN: 'bg-cyan-100 text-cyan-700',
+        SITE_SUPERVISOR: 'bg-orange-100 text-orange-700',
+        SITE_ENGINEER: 'bg-amber-100 text-amber-700',
+        NON_TECHNICAL: 'bg-gray-100 text-gray-600',
     };
 
     const handleNavClick = () => {

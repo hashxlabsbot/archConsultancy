@@ -37,7 +37,7 @@ export default function LeavesPage() {
                 if (data.balance) setBalance(data.balance);
             }
 
-            const slEndpoint = (role === 'EMPLOYEE' || role === 'SITE_ENGINEER') ? '/api/attendance/short-leaves' : '/api/admin/short-leaves';
+            const slEndpoint = (role !== 'ADMIN' && role !== 'SENIOR') ? '/api/attendance/short-leaves' : '/api/admin/short-leaves';
             const slRes = await fetch(slEndpoint);
             if (slRes.ok) {
                 const slData = await slRes.json();
@@ -167,18 +167,18 @@ export default function LeavesPage() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-slate-50/50 border-b border-slate-100/80">
-                                    {(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') && <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Employee</th>}
+                                    {(role === 'ADMIN' || role === 'SENIOR') && <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Employee</th>}
                                     <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Type</th>
                                     <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Duration</th>
                                     <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Reason</th>
                                     <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Status</th>
-                                    {(role === 'MANAGER' || role === 'ADMIN') && <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Actions</th>}
+                                    {(role === 'SENIOR' || role === 'ADMIN') && <th className="text-xs font-bold text-slate-500 uppercase tracking-wider px-6 py-4">Actions</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100/80">
                                 {leaves.map((leave) => (
                                     <tr key={leave.id} className="hover:bg-indigo-50/30 transition-colors group">
-                                        {(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') && (
+                                        {(role === 'ADMIN' || role === 'SENIOR') && (
                                             <td className="px-6 py-4">
                                                 <span className="text-sm font-bold text-slate-900">{leave.user?.name}</span>
                                             </td>
@@ -202,7 +202,7 @@ export default function LeavesPage() {
                                         <td className="px-6 py-4">
                                             <span className={`badge ${getStatusBadgeColor(leave.status)}`}>{leave.status}</span>
                                         </td>
-                                        {(role === 'MANAGER' || role === 'ADMIN') && (
+                                        {(role === 'SENIOR' || role === 'ADMIN') && (
                                             <td className="px-6 py-4">
                                                 {leave.status === 'PENDING' && (
                                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -220,7 +220,7 @@ export default function LeavesPage() {
                                 ))}
                                 {leaves.length === 0 && (
                                     <tr>
-                                        <td colSpan={(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') ? 6 : 5} className="px-6 py-12 text-center text-slate-400">
+                                        <td colSpan={(role === 'ADMIN' || role === 'SENIOR') ? 6 : 5} className="px-6 py-12 text-center text-slate-400">
                                             <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-3">
                                                 <HiOutlineCalendarDays className="w-6 h-6 text-slate-300" />
                                             </div>
@@ -245,18 +245,18 @@ export default function LeavesPage() {
                         <table className="w-full text-left border-collapse">
                             <thead>
                                 <tr className="bg-amber-50/20 border-b border-amber-100/50">
-                                    {(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') && <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Employee</th>}
+                                    {(role === 'ADMIN' || role === 'SENIOR') && <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Employee</th>}
                                     <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Date</th>
                                     <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Duration</th>
                                     <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Reason</th>
                                     <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Status</th>
-                                    {(role === 'MANAGER' || role === 'ADMIN') && <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Actions</th>}
+                                    {(role === 'SENIOR' || role === 'ADMIN') && <th className="text-xs font-bold text-amber-800/60 uppercase tracking-wider px-6 py-4">Actions</th>}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-amber-100/30">
                                 {shortLeaves.map((sl) => (
                                     <tr key={sl.id} className="hover:bg-amber-50/50 transition-colors group">
-                                        {(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') && (
+                                        {(role === 'ADMIN' || role === 'SENIOR') && (
                                             <td className="px-6 py-4">
                                                 <span className="text-sm font-bold text-slate-900">{sl.user?.name}</span>
                                             </td>
@@ -269,7 +269,7 @@ export default function LeavesPage() {
                                         </td>
                                         <td className="px-6 py-4 text-sm text-slate-600 max-w-xs truncate" title={sl.reason}>{sl.reason}</td>
                                         <td className="px-6 py-4"><span className={`badge ${getStatusBadgeColor(sl.status)}`}>{sl.status}</span></td>
-                                        {(role === 'MANAGER' || role === 'ADMIN') && (
+                                        {(role === 'SENIOR' || role === 'ADMIN') && (
                                             <td className="px-6 py-4">
                                                 {sl.status === 'PENDING' && (
                                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -287,7 +287,7 @@ export default function LeavesPage() {
                                 ))}
                                 {shortLeaves.length === 0 && (
                                     <tr>
-                                        <td colSpan={(role !== 'EMPLOYEE' && role !== 'SITE_ENGINEER') ? 6 : 5} className="px-6 py-12 text-center text-amber-800/40">
+                                        <td colSpan={(role === 'ADMIN' || role === 'SENIOR') ? 6 : 5} className="px-6 py-12 text-center text-amber-800/40">
                                             No short leave requests found
                                         </td>
                                     </tr>

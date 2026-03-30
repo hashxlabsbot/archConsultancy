@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
         const limit = parseInt(searchParams.get('limit') || '20');
 
-        const where = role === 'EMPLOYEE' ? { userId } : {};
+        const where = (role !== 'ADMIN' && role !== 'SENIOR') ? { userId } : {};
 
         const [reports, total] = await Promise.all([
             prisma.report.findMany({

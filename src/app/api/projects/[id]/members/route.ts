@@ -65,7 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         const userRole = (session.user as any).role;
         const _userId = (session.user as any).id;
-        if (userRole !== 'ADMIN' && userRole !== 'MANAGER' && project.ownerId !== _userId) {
+        if (userRole !== 'ADMIN' && userRole !== 'SENIOR' && project.ownerId !== _userId) {
              return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 

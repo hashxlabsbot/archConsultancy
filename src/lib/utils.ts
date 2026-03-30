@@ -36,14 +36,36 @@ export function getRoleBadgeColor(role: string): string {
     switch (role) {
         case 'ADMIN':
             return 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-        case 'MANAGER':
+        case 'SENIOR':
             return 'bg-blue-500/20 text-blue-300 border-blue-500/30';
-        case 'EMPLOYEE':
+        case 'JUNIOR':
             return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
-        case 'SITE_ENGINEER':
+        case 'TRAINEE':
+            return 'bg-teal-500/20 text-teal-300 border-teal-500/30';
+        case 'INTERN':
+            return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30';
+        case 'SITE_SUPERVISOR':
             return 'bg-orange-500/20 text-orange-300 border-orange-500/30';
+        case 'SITE_ENGINEER':
+            return 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+        case 'NON_TECHNICAL':
+            return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
         default:
             return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+    }
+}
+
+export function getRoleDisplayName(role: string): string {
+    switch (role) {
+        case 'ADMIN': return 'Principal Architect';
+        case 'SENIOR': return 'Senior';
+        case 'JUNIOR': return 'Junior';
+        case 'TRAINEE': return 'Trainee';
+        case 'INTERN': return 'Intern';
+        case 'SITE_SUPERVISOR': return 'Site Supervisor';
+        case 'SITE_ENGINEER': return 'Site Engineer';
+        case 'NON_TECHNICAL': return 'Non Technical';
+        default: return role;
     }
 }
 

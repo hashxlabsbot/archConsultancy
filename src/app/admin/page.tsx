@@ -9,14 +9,14 @@ import toast from 'react-hot-toast';
 
 export default function AdminPage() {
     const [users, setUsers] = useState<any[]>([]);
-    const [loadingUsers, setLoadingUsers] = useState(true);
+    const [, setLoadingUsers] = useState(true);
 
     // User Modal State
     const [isUserModalOpen, setIsUserModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [formData, setFormData] = useState({
-        name: '', email: '', password: '', role: 'EMPLOYEE', phone: '', skills: '',
+        name: '', email: '', password: '', role: 'JUNIOR', phone: '+91', skills: '',
         designation: '', fathersName: '', joiningDate: '', panCard: '', aadharNo: ''
     });
 
@@ -37,7 +37,7 @@ export default function AdminPage() {
 
     const openAddModal = () => {
         setFormData({
-            name: '', email: '', password: '', role: 'EMPLOYEE', phone: '', skills: '',
+            name: '', email: '', password: '', role: 'JUNIOR', phone: '+91', skills: '',
             designation: '', fathersName: '', joiningDate: '', panCard: '', aadharNo: ''
         });
         setModalMode('add');
@@ -57,6 +57,27 @@ export default function AdminPage() {
         setIsUserModalOpen(true);
     };
 
+    const formatAadhar = (value: string) => {
+        const digits = value.replace(/\D/g, '').slice(0, 12);
+        return digits.replace(/(\d{4})(?=\d)/g, '$1-');
+    };
+
+    const handleAadharChange = (value: string) => {
+        setFormData({ ...formData, aadharNo: formatAadhar(value) });
+    };
+
+    const handlePanChange = (value: string) => {
+        setFormData({ ...formData, panCard: value.toUpperCase() });
+    };
+
+    const handlePhoneChange = (value: string) => {
+        if (!value.startsWith('+91')) {
+            setFormData({ ...formData, phone: '+91' + value.replace(/^\+?91?/, '') });
+        } else {
+            setFormData({ ...formData, phone: value });
+        }
+    };
+
     const handleUserSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -64,7 +85,7 @@ export default function AdminPage() {
         if (!formData.name.trim()) { toast.error('Full Name is required'); return; }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) { toast.error('Invalid email format'); return; }
 
-        if (formData.phone && !/^(?:\+?91[\-\s]?)?[6789]\d{9}$/.test(formData.phone)) {
+        if (formData.phone && formData.phone !== '+91' && !/^(?:\+?91[\-\s]?)?[6789]\d{9}$/.test(formData.phone)) {
             toast.error('Invalid Indian mobile number'); return;
         }
 
@@ -83,10 +104,12 @@ export default function AdminPage() {
             toast.error('New password must be at least 6 characters'); return;
         }
 
-        // Format PAN card to uppercase before sending
+        // Format fields before sending
         const payload = {
             ...formData,
-            panCard: formData.panCard ? formData.panCard.replace(/\s/g, '').toUpperCase() : ''
+            phone: formData.phone === '+91' ? '' : formData.phone,
+            panCard: formData.panCard ? formData.panCard.replace(/\s/g, '').toUpperCase() : '',
+            aadharNo: formData.aadharNo.replace(/-/g, '') ? formData.aadharNo : '',
         };
 
         try {
@@ -158,8 +181,8 @@ export default function AdminPage() {
                         </div>
                         <div className="glass-card p-5 text-center">
                             <HiOutlineCog6Tooth className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-slate-900">{users.filter(u => u.role === 'MANAGER').length}</p>
-                            <p className="text-sm text-slate-500">Managers</p>
+                            <p className="text-2xl font-bold text-slate-900">{users.filter(u => u.role === 'SENIOR').length}</p>
+                            <p className="text-sm text-slate-500">Senior Staff</p>
                         </div>
                     </div>
 
@@ -231,10 +254,14 @@ export default function AdminPage() {
                                     <div>
                                         <label className="input-label">Role *</label>
                                         <select value={formData.role} onChange={(e) => setFormData({ ...formData, role: e.target.value })} className="input-field">
-                                            <option value="EMPLOYEE">Employee</option>
-                                            <option value="MANAGER">Manager</option>
+                                            <option value="JUNIOR">Junior</option>
+                                            <option value="SENIOR">Senior</option>
+                                            <option value="TRAINEE">Trainee</option>
+                                            <option value="INTERN">Intern</option>
+                                            <option value="SITE_SUPERVISOR">Site Supervisor</option>
                                             <option value="SITE_ENGINEER">Site Engineer</option>
-                                            <option value="ADMIN">Admin</option>
+                                            <option value="NON_TECHNICAL">Non Technical</option>
+                                            <option value="ADMIN">Principal Architect / Admin</option>
                                         </select>
                                     </div>
                                 </div>
@@ -245,7 +272,7 @@ export default function AdminPage() {
                                     </div>
                                     <div>
                                         <label className="input-label">Phone</label>
-                                        <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input-field" placeholder="+91..." />
+                                        <input type="text" value={formData.phone} onChange={(e) => handlePhoneChange(e.target.value)} className="input-field" placeholder="+91XXXXXXXXXX" />
                                     </div>
                                 </div>
                                 <div>
@@ -270,11 +297,11 @@ export default function AdminPage() {
                                         </div>
                                         <div>
                                             <label className="input-label">PAN Card No.</label>
-                                            <input type="text" value={formData.panCard} onChange={(e) => setFormData({ ...formData, panCard: e.target.value })} className="input-field" placeholder="ABCDE1234F" />
+                                            <input type="text" value={formData.panCard} onChange={(e) => handlePanChange(e.target.value)} className="input-field" placeholder="ABCDE1234F" />
                                         </div>
                                         <div className="col-span-2">
                                             <label className="input-label">Aadhar No.</label>
-                                            <input type="text" value={formData.aadharNo} onChange={(e) => setFormData({ ...formData, aadharNo: e.target.value })} className="input-field" placeholder="XXXX-XXXX-XXXX" />
+                                            <input type="text" value={formData.aadharNo} onChange={(e) => handleAadharChange(e.target.value)} className="input-field" placeholder="XXXX-XXXX-XXXX" maxLength={14} />
                                         </div>
                                     </div>
                                 </div>

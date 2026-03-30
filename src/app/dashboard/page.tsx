@@ -81,7 +81,7 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [currentEOM, setCurrentEOM] = useState<any>(null);
     const [recentNotices, setRecentNotices] = useState<any[]>([]);
-    const role = (session?.user as any)?.role || 'EMPLOYEE';
+    const role = (session?.user as any)?.role || 'JUNIOR';
     const firstName = session?.user?.name?.split(' ')[0] || 'there';
 
     useEffect(() => {
@@ -175,7 +175,7 @@ export default function DashboardPage() {
     };
 
     const statCards = [
-        ...(role !== 'SITE_ENGINEER' ? [{
+        ...(role !== 'SITE_SUPERVISOR' ? [{
             label: 'Total Employees',
             value: data?.stats.totalEmployees ?? '—',
             icon: HiOutlineUsers,
@@ -191,7 +191,7 @@ export default function DashboardPage() {
             accent: '#0ea5e9',
             bg: 'from-sky-50 to-sky-100/50',
         },
-        ...(role !== 'SITE_ENGINEER' ? [{
+        ...(role !== 'SITE_SUPERVISOR' ? [{
             label: "Today's Attendance",
             value: data?.stats.todayAttendance ?? '—',
             icon: HiOutlineClock,
@@ -209,7 +209,7 @@ export default function DashboardPage() {
         },
     ];
 
-    const quickActions = role === 'SITE_ENGINEER'
+    const quickActions = role === 'SITE_SUPERVISOR'
         ? [
             { href: '/attendance', label: 'Attendance', icon: HiOutlineClock, iconClass: 'icon-sq-sky' },
             { href: '/site-logs', label: 'Daily Site Log', icon: HiOutlineWrenchScrewdriver, iconClass: 'icon-sq-orange' },
@@ -307,7 +307,7 @@ export default function DashboardPage() {
                 </motion.div>
 
                 {/* ── EMPLOYEE/SITE_ENGINEER CARDS: attendance + leave ── */}
-                {(role !== 'ADMIN' && role !== 'SITE_ENGINEER') && (
+                {(role !== 'ADMIN' && role !== 'SITE_SUPERVISOR') && (
                     <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         {/* Today's Attendance */}
                         <div className="glass-card p-6">
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* ── SITE_ENGINEER: just attendance card ── */}
-                {role === 'SITE_ENGINEER' && (
+                {role === 'SITE_SUPERVISOR' && (
                     <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         <div className="glass-card p-6">
                             <div className="flex items-center justify-between mb-5">
@@ -532,7 +532,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* ── ADMIN/MANAGER: Team Attendance + Reports ── */}
-                {(role === 'MANAGER' || role === 'ADMIN') && (
+                {(role === 'SENIOR' || role === 'ADMIN') && (
                     <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-5">
                         {/* Team Attendance */}
                         <div className="glass-card p-6">
@@ -634,7 +634,7 @@ export default function DashboardPage() {
                 )}
 
                 {/* ── Compliance Alert ── */}
-                {data?.stats.missedReports && data.stats.missedReports > 0 && (role === 'MANAGER' || role === 'ADMIN') && (
+                {data?.stats.missedReports && data.stats.missedReports > 0 && (role === 'SENIOR' || role === 'ADMIN') && (
                     <motion.div variants={itemVariants} className="flex items-center gap-4 p-5 bg-rose-50 border border-rose-200 rounded-2xl">
                         <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center flex-shrink-0">
                             <HiOutlineExclamationTriangle className="w-5 h-5 text-rose-500" />

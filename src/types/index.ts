@@ -2,7 +2,7 @@ export interface UserProfile {
     id: string;
     name: string;
     email: string;
-    role: 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+    role: 'ADMIN' | 'SENIOR' | 'JUNIOR' | 'TRAINEE' | 'INTERN' | 'SITE_SUPERVISOR' | 'SITE_ENGINEER' | 'NON_TECHNICAL';
     phone?: string;
     skills?: string;
     avatar?: string;

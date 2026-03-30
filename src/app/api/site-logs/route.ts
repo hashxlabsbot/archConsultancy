@@ -19,8 +19,8 @@ export async function GET(req: NextRequest) {
 
         const where: any = {};
 
-        // Site engineers only see their own logs
-        if (role === 'SITE_ENGINEER') {
+        // Site supervisors only see their own logs
+        if (role === 'SITE_SUPERVISOR') {
             where.userId = userId;
         }
 
@@ -56,8 +56,8 @@ export async function GET(req: NextRequest) {
 
         // Also fetch projects for the dropdown
         let projects;
-        if (role === 'SITE_ENGINEER') {
-            // Get projects where the site engineer is a member
+        if (role === 'SITE_SUPERVISOR') {
+            // Get projects where the site supervisor is a member
             const memberships = await prisma.projectMember.findMany({
                 where: { userId },
                 include: { project: { select: { id: true, name: true, client: true, status: true } } },
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         }
 
         const userId = (session.user as any).id;
-        const { projectId, labourCount, mistriCount, notes, mediaUrls } = await req.json();
+        const { projectId, masonCount, coolieCount, helperCount, notes, mediaUrls } = await req.json();
 
         if (!projectId) {
             return NextResponse.json({ error: 'Project is required' }, { status: 400 });
@@ -140,8 +140,9 @@ export async function POST(req: NextRequest) {
             log = await prisma.dailySiteLog.update({
                 where: { id: existing.id },
                 data: {
-                    labourCount: labourCount ?? existing.labourCount,
-                    mistriCount: mistriCount ?? existing.mistriCount,
+                    masonCount: masonCount ?? existing.masonCount,
+                    coolieCount: coolieCount ?? existing.coolieCount,
+                    helperCount: helperCount ?? existing.helperCount,
                     notes: notes ?? existing.notes,
                     mediaUrls: JSON.stringify(mergedMedia),
                 },
@@ -155,8 +156,9 @@ export async function POST(req: NextRequest) {
                     userId,
                     projectId,
                     date: today,
-                    labourCount: labourCount || 0,
-                    mistriCount: mistriCount || 0,
+                    masonCount: masonCount || 0,
+                    coolieCount: coolieCount || 0,
+                    helperCount: helperCount || 0,
                     notes: notes || '',
                     mediaUrls: mediaUrls ? JSON.stringify(mediaUrls) : '[]',
                 },

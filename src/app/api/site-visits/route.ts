@@ -70,7 +70,7 @@ export async function GET(req: NextRequest) {
 
         const where: any = {};
         if (projectId) where.projectId = projectId;
-        if (role === 'EMPLOYEE') where.userId = userId;
+        if (role !== 'ADMIN' && role !== 'SENIOR') where.userId = userId;
 
         const [visits, total] = await Promise.all([
             prisma.siteVisit.findMany({

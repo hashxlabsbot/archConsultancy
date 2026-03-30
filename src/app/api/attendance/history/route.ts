@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
         const targetUserId = searchParams.get('userId');
 
         // Managers/Admins can view any user's history
-        const queryUserId = (role === 'MANAGER' || role === 'ADMIN') && targetUserId
+        const queryUserId = (role === 'SENIOR' || role === 'ADMIN') && targetUserId
             ? targetUserId
             : userId;
 

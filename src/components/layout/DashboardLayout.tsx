@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import BottomNav from './BottomNav';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -272,12 +273,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3, ease: 'easeOut' }}
-                        className="p-3 sm:p-4 md:p-6 flex-1"
+                        className="p-3 sm:p-4 md:p-6 flex-1 pb-24 md:pb-6"
                     >
                         {children}
                     </motion.main>
                 </div>
             </div>
+            <BottomNav />
 
             {/* Unread Notice Popup */}
             <AnimatePresence>

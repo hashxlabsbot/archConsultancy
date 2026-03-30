@@ -49,7 +49,7 @@ export default function ReportsPage() {
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold text-slate-900">Daily Reports</h1>
-                        <p className="text-slate-500 mt-1">{role === 'EMPLOYEE' ? 'Your submitted reports' : 'All team reports'}</p>
+                        <p className="text-slate-500 mt-1">{(role !== 'ADMIN' && role !== 'SENIOR') ? 'Your submitted reports' : 'All team reports'}</p>
                     </div>
                     <Link href="/reports/new" className="btn-primary flex items-center gap-2">
                         <HiOutlinePlus className="w-4 h-4" /> New Report
@@ -76,7 +76,7 @@ export default function ReportsPage() {
                                         </div>
                                     </div>
                                 </div>
-                                {(role === 'MANAGER' || role === 'ADMIN') && (
+                                {(role === 'SENIOR' || role === 'ADMIN') && (
                                     <button
                                         onClick={() => setCommentModal({ id: report.id, open: true, comment: report.managerComment || '' })}
                                         className="btn-secondary text-xs py-1.5 px-3 flex items-center gap-1"

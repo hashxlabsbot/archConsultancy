@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
         const status = searchParams.get('status');
 
         const where: any = {};
-        if (role === 'EMPLOYEE' || role === 'SITE_ENGINEER') where.userId = userId;
+        if (role !== 'ADMIN' && role !== 'SENIOR') where.userId = userId;
         if (status) where.status = status;
 
         const leaves = await prisma.leave.findMany({

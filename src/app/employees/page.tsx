@@ -48,9 +48,14 @@ export default function EmployeesPage() {
                     </div>
                     <select className="input-field w-auto" value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
                         <option value="">All Roles</option>
-                        <option value="ADMIN">Admin</option>
-                        <option value="MANAGER">Manager</option>
-                        <option value="EMPLOYEE">Employee</option>
+                        <option value="ADMIN">Principal Architect</option>
+                        <option value="SENIOR">Senior</option>
+                        <option value="JUNIOR">Junior</option>
+                        <option value="TRAINEE">Trainee</option>
+                        <option value="INTERN">Intern</option>
+                        <option value="SITE_SUPERVISOR">Site Supervisor</option>
+                        <option value="SITE_ENGINEER">Site Engineer</option>
+                        <option value="NON_TECHNICAL">Non Technical</option>
                     </select>
                 </div>
 
