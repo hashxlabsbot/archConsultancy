@@ -14,6 +14,7 @@ interface SpeechTextareaProps {
     value: string;
     onChange: (val: string) => void;
     onAudioChange?: (blob: Blob | null) => void;
+    onBusyChange?: (busy: boolean) => void;
     initialAudioUrl?: string;
     placeholder?: string;
     className?: string;
@@ -25,6 +26,7 @@ export default function SpeechTextarea({
     value,
     onChange,
     onAudioChange,
+    onBusyChange,
     initialAudioUrl,
     placeholder,
     className = '',
@@ -55,6 +57,14 @@ export default function SpeechTextarea({
     const recognitionRef = useRef<any>(null);
     const timerRef = useRef<any>(null);
     const restartTimerRef = useRef<any>(null);
+    const prevBusyRef = useRef(false);
+
+    // ── Notify parent of busy state ──────────────────────────────────────────
+    const currBusy = isListening || isTranslating;
+    if (onBusyChange && currBusy !== prevBusyRef.current) {
+        prevBusyRef.current = currBusy;
+        onBusyChange(currBusy);
+    }
 
     // ── Timer ─────────────────────────────────────────────────────────────────
     const startTimer = () => {
@@ -319,7 +329,7 @@ export default function SpeechTextarea({
                         className={`px-1.5 py-1 rounded-lg text-[10px] font-bold transition-all shadow-sm ${isHindi
                             ? 'bg-orange-100 text-orange-600 ring-2 ring-orange-300'
                             : 'bg-slate-100 text-slate-500 hover:bg-orange-50 hover:text-orange-500'
-                        }`}
+                            }`}
                     >
                         {isHindi ? 'HI' : 'EN'}
                     </button>
@@ -340,7 +350,7 @@ export default function SpeechTextarea({
                             : isTranslating
                                 ? 'bg-amber-100 text-amber-600 cursor-wait'
                                 : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
-                        }`}
+                            }`}
                     >
                         {isListening ? (
                             <HiOutlineStopCircle className="w-4 h-4" />
@@ -358,7 +368,7 @@ export default function SpeechTextarea({
                             className={`p-1.5 rounded-lg transition-all shadow-sm ${isSpeaking
                                 ? 'bg-indigo-100 text-indigo-600 animate-pulse ring-2 ring-indigo-300'
                                 : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
-                            }`}
+                                }`}
                         >
                             {isSpeaking ? (
                                 <HiOutlineStopCircle className="w-4 h-4" />
@@ -372,13 +382,11 @@ export default function SpeechTextarea({
 
             {/* Status bar */}
             {(isListening || isTranslating) && (
-                <div className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
-                    isTranslating ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'
-                }`}>
+                <div className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${isTranslating ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'
+                    }`}>
                     <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                            isTranslating ? 'bg-amber-400 animate-pulse' : 'bg-red-500 animate-pulse'
-                        }`} />
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isTranslating ? 'bg-amber-400 animate-pulse' : 'bg-red-500 animate-pulse'
+                            }`} />
                         {isTranslating
                             ? 'Translating Hindi → English…'
                             : isHindi

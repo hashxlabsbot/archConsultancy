@@ -47,6 +47,8 @@ export default function SiteLogsPage() {
     const [mediaFiles, setMediaFiles] = useState<File[]>([]);
     const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+    const [initialAudioUrl, setInitialAudioUrl] = useState<string | null>(null);
+    const [isSTTBusy, setIsSTTBusy] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState(false);
     const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
 
@@ -140,7 +142,9 @@ export default function SiteLogsPage() {
         setHelperCount(0);
         setOtherCount(0);
         setNotes('');
+        setInitialAudioUrl(null);
         setAudioBlob(null);
+        setIsSTTBusy(false);
         setMediaFiles([]);
         setMediaPreviews([]);
     };
@@ -189,6 +193,9 @@ export default function SiteLogsPage() {
             let res: Response;
             if (editingLogId) {
                 // Update an existing log via PATCH
+                // Only send audioUrl if a NEW one was recorded, otherwise preserve the initial one
+                const finalAudioUrl = audioBlob ? audioUrlResult : initialAudioUrl;
+
                 res = await fetch(`/api/site-logs/${editingLogId}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -198,7 +205,7 @@ export default function SiteLogsPage() {
                         helperCount,
                         otherCount,
                         notes,
-                        audioUrl: audioUrlResult,
+                        audioUrl: finalAudioUrl,
                         mediaUrls,
                     }),
                 });
@@ -293,11 +300,10 @@ export default function SiteLogsPage() {
                     {/* Today quick-filter */}
                     <button
                         onClick={() => setFilterDate(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0])}
-                        className={`text-xs font-bold px-3 py-2 rounded-lg transition-colors ${
-                            filterDate === new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
-                        }`}
+                        className={`text-xs font-bold px-3 py-2 rounded-lg transition-colors ${filterDate === new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
+                            ? 'bg-orange-500 text-white'
+                            : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                            }`}
                     >
                         Today
                     </button>
@@ -471,137 +477,139 @@ export default function SiteLogsPage() {
                                             try { media = log.mediaUrls ? JSON.parse(log.mediaUrls) : []; } catch { }
 
                                             return (
-                                <motion.div
-                                    key={log.id}
-                                    initial={{ opacity: 0, y: 12 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: (gIdx * 0.05) + (idx * 0.04) }}
-                                    className="glass-card overflow-hidden"
-                                >
-                                    {/* Log Header */}
-                                    <div className="p-5 border-b border-slate-100/80 flex flex-wrap items-center justify-between gap-3 bg-white/50">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center shadow-sm">
-                                                <HiOutlineWrenchScrewdriver className="w-5 h-5 text-white" />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-bold text-slate-900 text-sm" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                                    {log.project?.name}
-                                                    {log.project?.client && <span className="font-normal text-slate-400 ml-1">· {log.project.client}</span>}
-                                                </h3>
-                                                {isAdmin && (
-                                                    <p className="text-xs font-semibold text-indigo-600 flex items-center gap-1">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
-                                                        {log.user?.name}
-                                                        <span className="text-slate-400 font-normal">· {log.user?.role?.replace('_', ' ')}</span>
-                                                    </p>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {filterDate && (
-                                            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">
-                                                {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Manpower Info */}
-                                    <div className="p-5">
-                                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
-                                            <div className="p-3 bg-orange-50 rounded-xl text-center border border-orange-100">
-                                                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1">Mason</p>
-                                                <p className="text-2xl font-extrabold text-orange-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.masonCount || 0}</p>
-                                            </div>
-                                            <div className="p-3 bg-pink-50 rounded-xl text-center border border-pink-100">
-                                                <p className="text-[10px] font-bold text-pink-600 uppercase tracking-widest mb-1">Coolie</p>
-                                                <p className="text-2xl font-extrabold text-pink-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.coolieCount || 0}</p>
-                                            </div>
-                                            <div className="p-3 bg-blue-50 rounded-xl text-center border border-blue-100">
-                                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Helper</p>
-                                                <p className="text-2xl font-extrabold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.helperCount || 0}</p>
-                                            </div>
-                                            <div className="p-3 bg-violet-50 rounded-xl text-center border border-violet-100">
-                                                <p className="text-[10px] font-bold text-violet-600 uppercase tracking-widest mb-1">Other</p>
-                                                <p className="text-2xl font-extrabold text-violet-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.otherCount || 0}</p>
-                                            </div>
-                                            <div className="p-3 bg-emerald-50 rounded-xl text-center border border-emerald-100">
-                                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Total</p>
-                                                <p className="text-2xl font-extrabold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{(log.masonCount || 0) + (log.coolieCount || 0) + (log.helperCount || 0) + (log.otherCount || 0)}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Notes & Audio */}
-                                        {(log.notes || log.audioUrl) && (
-                                            <div className="mb-4 lg:flex gap-4">
-                                                {log.notes && (
-                                                    <div className="flex-1 p-3 bg-slate-50 rounded-xl border border-slate-100 mb-3 lg:mb-0">
-                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</p>
-                                                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{log.notes}</p>
-                                                    </div>
-                                                )}
-                                                {log.audioUrl && (
-                                                    <div className="lg:w-1/3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-                                                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1.5 flex items-center gap-1">
-                                                            <HiOutlineMicrophone className="w-3 h-3" /> Audio Instruction
-                                                        </p>
-                                                        <audio controls src={log.audioUrl} className="w-full h-8" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
-
-                                        {/* Site Media */}
-                                        {media.length > 0 && (
-                                            <div>
-                                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                                                    <HiOutlinePhoto className="w-3.5 h-3.5" /> Site Photos ({media.length})
-                                                </p>
-                                                <div className="flex gap-3 overflow-x-auto pb-2">
-                                                    {media.map((url, i) => (
-                                                        <div key={i} onClick={() => setPreviewMedia({ url, type: url.includes('video') || url.match(/\.(mp4|webm|ogg|mov)$/i) ? 'video' : 'image' })} className="relative w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-xl overflow-hidden border-2 border-slate-200 shadow-sm hover:border-indigo-400 transition-colors cursor-pointer group">
-                                                            {url.includes('video') || url.match(/\.(mp4|webm|ogg|mov)$/i) ? (
-                                                                <>
-                                                                    <video src={url} className="w-full h-full object-cover" />
-                                                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/30 transition-colors">
-                                                                        <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center backdrop-blur-sm shadow-sm group-hover:scale-110 transition-transform">
-                                                                            <div className="w-0 h-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-slate-800 ml-1" />
-                                                                        </div>
-                                                                    </div>
-                                                                </>
-                                                            ) : (
-                                                                <img src={url} alt={`Site photo ${i + 1}`} className="w-full h-full object-cover" />
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Update button for site engineer */}
-                                        {canSubmit && (
-                                            <div className="mt-4 pt-3 border-t border-slate-100">
-                                                <button
-                                                    onClick={() => {
-                                                        setEditingLogId(log.id);
-                                                        setSelectedProject(log.projectId);
-                                                        setMasonCount(log.masonCount);
-                                                        setCoolieCount(log.coolieCount);
-                                                        setHelperCount(log.helperCount);
-                                                        setOtherCount(log.otherCount);
-                                                        setNotes(log.notes || '');
-                                                        setAudioBlob(null);
-                                                        setMediaFiles([]);
-                                                        setMediaPreviews([]);
-                                                        setShowForm(true);
-                                                    }}
-                                                    className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
+                                                <motion.div
+                                                    key={log.id}
+                                                    initial={{ opacity: 0, y: 12 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ delay: (gIdx * 0.05) + (idx * 0.04) }}
+                                                    className="glass-card overflow-hidden"
                                                 >
-                                                    <HiOutlineArrowPath className="w-3.5 h-3.5" /> Update Entry
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </motion.div>
+                                                    {/* Log Header */}
+                                                    <div className="p-5 border-b border-slate-100/80 flex flex-wrap items-center justify-between gap-3 bg-white/50">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center shadow-sm">
+                                                                <HiOutlineWrenchScrewdriver className="w-5 h-5 text-white" />
+                                                            </div>
+                                                            <div>
+                                                                <h3 className="font-bold text-slate-900 text-sm" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                                                    {log.project?.name}
+                                                                    {log.project?.client && <span className="font-normal text-slate-400 ml-1">· {log.project.client}</span>}
+                                                                </h3>
+                                                                {isAdmin && (
+                                                                    <p className="text-xs font-semibold text-indigo-600 flex items-center gap-1">
+                                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
+                                                                        {log.user?.name}
+                                                                        <span className="text-slate-400 font-normal">· {log.user?.role?.replace('_', ' ')}</span>
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {filterDate && (
+                                                            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">
+                                                                {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                            </span>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Manpower Info */}
+                                                    <div className="p-5">
+                                                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+                                                            <div className="p-3 bg-orange-50 rounded-xl text-center border border-orange-100">
+                                                                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1">Mason</p>
+                                                                <p className="text-2xl font-extrabold text-orange-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.masonCount || 0}</p>
+                                                            </div>
+                                                            <div className="p-3 bg-pink-50 rounded-xl text-center border border-pink-100">
+                                                                <p className="text-[10px] font-bold text-pink-600 uppercase tracking-widest mb-1">Coolie</p>
+                                                                <p className="text-2xl font-extrabold text-pink-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.coolieCount || 0}</p>
+                                                            </div>
+                                                            <div className="p-3 bg-blue-50 rounded-xl text-center border border-blue-100">
+                                                                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Helper</p>
+                                                                <p className="text-2xl font-extrabold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.helperCount || 0}</p>
+                                                            </div>
+                                                            <div className="p-3 bg-violet-50 rounded-xl text-center border border-violet-100">
+                                                                <p className="text-[10px] font-bold text-violet-600 uppercase tracking-widest mb-1">Other</p>
+                                                                <p className="text-2xl font-extrabold text-violet-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.otherCount || 0}</p>
+                                                            </div>
+                                                            <div className="p-3 bg-emerald-50 rounded-xl text-center border border-emerald-100">
+                                                                <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Total</p>
+                                                                <p className="text-2xl font-extrabold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{(log.masonCount || 0) + (log.coolieCount || 0) + (log.helperCount || 0) + (log.otherCount || 0)}</p>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Notes & Audio */}
+                                                        {(log.notes || log.audioUrl) && (
+                                                            <div className="mb-4 lg:flex gap-4">
+                                                                {log.notes && (
+                                                                    <div className="flex-1 p-3 bg-slate-50 rounded-xl border border-slate-100 mb-3 lg:mb-0">
+                                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</p>
+                                                                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{log.notes}</p>
+                                                                    </div>
+                                                                )}
+                                                                {log.audioUrl && (
+                                                                    <div className="lg:w-1/3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                                                                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                                                            <HiOutlineMicrophone className="w-3 h-3" /> Audio Instruction
+                                                                        </p>
+                                                                        <audio controls src={log.audioUrl} className="w-full h-8" />
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Site Media */}
+                                                        {media.length > 0 && (
+                                                            <div>
+                                                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                                                                    <HiOutlinePhoto className="w-3.5 h-3.5" /> Site Photos ({media.length})
+                                                                </p>
+                                                                <div className="flex gap-3 overflow-x-auto pb-2">
+                                                                    {media.map((url, i) => (
+                                                                        <div key={i} onClick={() => setPreviewMedia({ url, type: url.includes('video') || url.match(/\.(mp4|webm|ogg|mov)$/i) ? 'video' : 'image' })} className="relative w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-xl overflow-hidden border-2 border-slate-200 shadow-sm hover:border-indigo-400 transition-colors cursor-pointer group">
+                                                                            {url.includes('video') || url.match(/\.(mp4|webm|ogg|mov)$/i) ? (
+                                                                                <>
+                                                                                    <video src={url} className="w-full h-full object-cover" />
+                                                                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/30 transition-colors">
+                                                                                        <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center backdrop-blur-sm shadow-sm group-hover:scale-110 transition-transform">
+                                                                                            <div className="w-0 h-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-slate-800 ml-1" />
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </>
+                                                                            ) : (
+                                                                                <img src={url} alt={`Site photo ${i + 1}`} className="w-full h-full object-cover" />
+                                                                            )}
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Update button for site engineer */}
+                                                        {canSubmit && (
+                                                            <div className="mt-4 pt-3 border-t border-slate-100">
+                                                                <button
+                                                                    onClick={() => {
+                                                                        setEditingLogId(log.id);
+                                                                        setSelectedProject(log.projectId);
+                                                                        setMasonCount(log.masonCount);
+                                                                        setCoolieCount(log.coolieCount);
+                                                                        setHelperCount(log.helperCount);
+                                                                        setOtherCount(log.otherCount);
+                                                                        setNotes(log.notes || '');
+                                                                        setInitialAudioUrl(log.audioUrl || null);
+                                                                        setAudioBlob(null);
+                                                                        setIsSTTBusy(false);
+                                                                        setMediaFiles([]);
+                                                                        setMediaPreviews([]);
+                                                                        setShowForm(true);
+                                                                    }}
+                                                                    className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
+                                                                >
+                                                                    <HiOutlineArrowPath className="w-3.5 h-3.5" /> Update Entry
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </motion.div>
                                             );
                                         })}
                                     </div>
@@ -751,6 +759,8 @@ export default function SiteLogsPage() {
                                         value={notes}
                                         onChange={setNotes}
                                         onAudioChange={setAudioBlob}
+                                        onBusyChange={setIsSTTBusy}
+                                        initialAudioUrl={initialAudioUrl || undefined}
                                     />
                                 </div>
 
@@ -817,11 +827,16 @@ export default function SiteLogsPage() {
                                 {/* Submit */}
                                 <div className="pt-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50/50 -mx-6 -mb-6 px-6 py-4 rounded-b-3xl">
                                     <button type="button" onClick={() => { setShowForm(false); resetForm(); }} className="btn-secondary px-6">Cancel</button>
-                                    <button type="submit" disabled={submitting || uploadingMedia} className="btn-primary px-8 shadow-glow-indigo flex items-center gap-2">
+                                    <button type="submit" disabled={submitting || uploadingMedia || isSTTBusy} className="btn-primary px-8 shadow-glow-indigo flex items-center gap-2">
                                         {(submitting || uploadingMedia) ? (
                                             <>
                                                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                                 {uploadingMedia ? 'Uploading...' : 'Submitting...'}
+                                            </>
+                                        ) : isSTTBusy ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+                                                Busy...
                                             </>
                                         ) : (
                                             'Submit Log'
