@@ -58,6 +58,7 @@ export default function SiteLogsPage() {
     const [filterProjectId, setFilterProjectId] = useState('');
     const [filterSupervisorId, setFilterSupervisorId] = useState('');
     const [allSupervisors, setAllSupervisors] = useState<any[]>([]);
+    const [todayAttendance, setTodayAttendance] = useState<any>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -107,6 +108,19 @@ export default function SiteLogsPage() {
             setLoading(false);
             setIsFetching(false);
         }
+
+        // Parallel fetch for attendance
+        fetchTodayAttendance();
+    };
+
+    const fetchTodayAttendance = async () => {
+        try {
+            const res = await fetch('/api/attendance/today');
+            if (res.ok) {
+                const data = await res.json();
+                setTodayAttendance(data.attendance || null);
+            }
+        } catch (e) { }
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -426,6 +440,42 @@ export default function SiteLogsPage() {
                             </div>
                         </motion.div>
                     </div>
+                )}
+
+                {/* Attendance Status for Supervisor */}
+                {isSiteSupervisor && (
+                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card mb-8 p-6 border-2 border-indigo-100 flex items-center justify-between bg-indigo-50/30 shadow-sm">
+                        <div className="flex items-center gap-4">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${todayAttendance ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                                {todayAttendance ? <HiOutlineCheckCircle className="w-8 h-8" /> : <HiOutlineClock className="w-8 h-8" />}
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                    Daily Attendance Status
+                                </h3>
+                                {!todayAttendance ? (
+                                    <p className="text-sm text-slate-500">Submit your first site log today to automatically verify your check-in.</p>
+                                ) : (
+                                    <div className="flex flex-wrap items-center gap-4 mt-1.5">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">In</span>
+                                            <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">{formatTime(todayAttendance.checkIn)}</span>
+                                        </div>
+                                        {todayAttendance.checkOut && (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Out</span>
+                                                <span className="text-sm font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">{formatTime(todayAttendance.checkOut)}</span>
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-1 text-[10px] text-slate-400 italic bg-white px-2 py-0.5 rounded-full border border-slate-100">
+                                            <HiOutlineCheckCircle className="w-3 h-3 text-emerald-500" />
+                                            Marked automatically via site logs
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
                 )}
 
                 {/* Logs List */}
