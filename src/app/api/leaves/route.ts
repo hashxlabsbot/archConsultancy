@@ -102,17 +102,23 @@ export async function GET(req: NextRequest) {
         });
 
         // Calculate balance (company policy: 19 leaves per year)
-        const approvedCount = await prisma.leave.count({
-            where: {
-                userId,
-                status: 'APPROVED',
-                startDate: { gte: new Date(new Date().getFullYear(), 0, 1) },
-            },
-        });
+        const [approvedCount, currentUser] = await Promise.all([
+            prisma.leave.count({
+                where: {
+                    userId,
+                    status: 'APPROVED',
+                    startDate: { gte: new Date(new Date().getFullYear(), 0, 1) },
+                },
+            }),
+            (prisma.user.findUnique({ where: { id: userId } }) as any),
+        ]);
+
+        const adjustment = currentUser?.leaveAdjustment ?? 0;
+        const used = approvedCount + adjustment;
 
         return NextResponse.json({
             leaves,
-            balance: { total: 19, used: approvedCount, remaining: 19 - approvedCount },
+            balance: { total: 19, used, remaining: Math.max(0, 19 - used) },
         });
     } catch (error) {
         console.error('Leaves list error:', error);

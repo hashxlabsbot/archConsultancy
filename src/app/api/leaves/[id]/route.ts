@@ -36,15 +36,35 @@ export async function PATCH(
             },
         });
 
-        // Notify the employee about the leave decision
         const isApproved = action === 'APPROVED';
+        const startStr = new Date(leave.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        const endStr = new Date(leave.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        const dateRange = startStr === endStr ? startStr : `${startStr} – ${endStr}`;
+
+        if (isApproved) {
+            // Notify ALL employees (except the one on leave) about who will be absent
+            const allEmployees = await prisma.user.findMany({
+                where: { id: { not: leave.user.id } },
+                select: { id: true },
+            });
+            await prisma.notification.createMany({
+                data: allEmployees.map((emp) => ({
+                    userId: emp.id,
+                    title: `${leave.user.name} is on Leave`,
+                    message: `${leave.user.name} has approved ${leave.type.toLowerCase()} leave on ${dateRange}.`,
+                    link: '/dashboard',
+                })),
+            });
+        }
+
+        // Notify the employee about their leave decision
         await prisma.notification.create({
             data: {
                 userId: leave.user.id,
                 title: isApproved ? 'Leave Approved' : 'Leave Rejected',
                 message: isApproved
-                    ? `Your leave request has been approved.${comment ? ` Note: ${comment}` : ''}`
-                    : `Your leave request has been rejected.${comment ? ` Reason: ${comment}` : ''}`,
+                    ? `Your leave request for ${dateRange} has been approved.${comment ? ` Note: ${comment}` : ''}`
+                    : `Your leave request for ${dateRange} has been rejected.${comment ? ` Reason: ${comment}` : ''}`,
                 link: '/leaves',
             },
         });

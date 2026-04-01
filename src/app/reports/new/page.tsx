@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import SpeechTextarea from '@/components/SpeechTextarea';
 import { motion } from 'framer-motion';
-import { HiOutlineDocumentText, HiOutlinePaperAirplane } from 'react-icons/hi2';
+import { HiOutlineDocumentText, HiOutlinePaperAirplane, HiOutlineCamera, HiOutlinePhoto, HiOutlineXMark } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
 export default function NewReportPage() {
@@ -14,6 +15,9 @@ export default function NewReportPage() {
     const [form, setForm] = useState({ tasks: '', blockers: '', nextPlan: '', projectId: '', imageUrl: '' });
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState('');
+
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchProjects();
@@ -43,6 +47,13 @@ export default function NewReportPage() {
             reader.onloadend = () => setImagePreview(reader.result as string);
             reader.readAsDataURL(file);
         }
+        // Reset so same file can be re-selected
+        e.target.value = '';
+    };
+
+    const removeImage = () => {
+        setImageFile(null);
+        setImagePreview('');
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -115,46 +126,83 @@ export default function NewReportPage() {
 
                             <div>
                                 <label className="input-label">Attach Image (Optional)</label>
+                                {imagePreview ? (
+                                    <div className="relative w-full h-28 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                                        <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={removeImage}
+                                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-red-500 transition-colors"
+                                        >
+                                            <HiOutlineXMark className="w-3.5 h-3.5" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => cameraInputRef.current?.click()}
+                                            className="flex-1 flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-sm font-medium text-slate-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all"
+                                        >
+                                            <HiOutlineCamera className="w-4 h-4" /> Camera
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => galleryInputRef.current?.click()}
+                                            className="flex-1 flex items-center justify-center gap-2 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-sm font-medium text-slate-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all"
+                                        >
+                                            <HiOutlinePhoto className="w-4 h-4" /> Gallery
+                                        </button>
+                                    </div>
+                                )}
+                                {/* Camera input */}
                                 <input
+                                    ref={cameraInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    capture="environment"
+                                    onChange={handleImageChange}
+                                    className="hidden"
+                                />
+                                {/* Gallery input */}
+                                <input
+                                    ref={galleryInputRef}
                                     type="file"
                                     accept="image/*"
                                     onChange={handleImageChange}
-                                    className="input-field file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100"
+                                    className="hidden"
                                 />
-                                {imagePreview && (
-                                    <p className="text-xs text-success-500 mt-2 font-medium">✓ Image attached successfully</p>
-                                )}
                             </div>
                         </div>
 
                         <div>
                             <label className="input-label">Tasks Completed Today <span className="text-danger-400">*</span></label>
-                            <textarea
-                                className="input-field min-h-[120px] resize-y"
+                            <SpeechTextarea
+                                className="input-field min-h-[120px]"
                                 placeholder="• Completed floor plan for Building A&#10;• Reviewed structural calculations&#10;• Updated BIM model with HVAC changes"
                                 value={form.tasks}
-                                onChange={(e) => setForm({ ...form, tasks: e.target.value })}
+                                onChange={(val) => setForm({ ...form, tasks: val })}
                                 required
                             />
                         </div>
 
                         <div>
                             <label className="input-label">Blockers / Challenges</label>
-                            <textarea
-                                className="input-field min-h-[80px] resize-y"
+                            <SpeechTextarea
+                                className="input-field min-h-[80px]"
                                 placeholder="• Waiting for client approval on elevation design&#10;• Need access to site survey data"
                                 value={form.blockers}
-                                onChange={(e) => setForm({ ...form, blockers: e.target.value })}
+                                onChange={(val) => setForm({ ...form, blockers: val })}
                             />
                         </div>
 
                         <div>
                             <label className="input-label">Plan for Tomorrow</label>
-                            <textarea
-                                className="input-field min-h-[80px] resize-y"
+                            <SpeechTextarea
+                                className="input-field min-h-[80px]"
                                 placeholder="• Start detailed drawings for Phase 2&#10;• Team review meeting at 10 AM"
                                 value={form.nextPlan}
-                                onChange={(e) => setForm({ ...form, nextPlan: e.target.value })}
+                                onChange={(val) => setForm({ ...form, nextPlan: val })}
                             />
                         </div>
 

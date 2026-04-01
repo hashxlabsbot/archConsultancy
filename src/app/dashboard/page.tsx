@@ -38,6 +38,7 @@ interface DashboardData {
     myLeaveBalance: any;
     recentReports: any[];
     teamAttendance: any[];
+    todayOnLeave: { id: string; userId: string; name: string; role: string; designation: string | null; type: string; startDate: string; endDate: string }[];
 }
 
 const containerVariants = {
@@ -316,6 +317,36 @@ export default function DashboardPage() {
                         </motion.div>
                     ))}
                 </motion.div>
+
+                {/* ── TODAY ON LEAVE ── */}
+                {data?.todayOnLeave && data.todayOnLeave.length > 0 && (
+                    <motion.div variants={itemVariants} className="glass-card p-5">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="icon-sq-amber w-9 h-9 rounded-xl">
+                                <HiOutlineCalendarDays className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                    On Leave Today
+                                </h3>
+                                <p className="text-xs text-slate-400">{data.todayOnLeave.length} employee{data.todayOnLeave.length > 1 ? 's' : ''} absent today</p>
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {data.todayOnLeave.map((l) => (
+                                <div key={l.id} className="flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl">
+                                    <div className="w-7 h-7 rounded-full bg-amber-200 flex items-center justify-center text-amber-700 text-xs font-bold flex-shrink-0">
+                                        {l.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-semibold text-slate-800 leading-tight">{l.name}</p>
+                                        <p className="text-[10px] text-amber-600 font-medium">{l.type.replace(/_/g, ' ')} Leave</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                )}
 
                 {/* ── EMPLOYEE/SITE_ENGINEER CARDS: attendance + leave ── */}
                 {(role !== 'ADMIN' && role !== 'SITE_SUPERVISOR') && (

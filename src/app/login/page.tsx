@@ -76,7 +76,7 @@ export default function LoginPage() {
                                 <img src="/logo.png" alt="Arch Consultancy Logo" className="w-full h-full object-contain" />
                             </div>
                             <h1 className="text-[22px] font-extrabold text-slate-900 mb-1.5 uppercase tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                Employee <span className="text-primary-600">Portal</span>
+                                Management <span className="text-primary-600">Portal</span>
                             </h1>
                             <p className="text-slate-500 text-sm font-medium">Log in to your workspace</p>
                         </motion.div>

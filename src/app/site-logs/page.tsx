@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import SpeechTextarea from '@/components/SpeechTextarea';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     HiOutlineWrenchScrewdriver,
@@ -13,6 +14,7 @@ import {
     HiOutlineDocumentText,
     HiOutlineCalendarDays,
     HiOutlinePhoto,
+
     HiOutlineArrowPath,
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
@@ -46,6 +48,7 @@ export default function SiteLogsPage() {
     const [filterDate, setFilterDate] = useState(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setPage(1);
@@ -524,11 +527,11 @@ export default function SiteLogsPage() {
                                 {/* Notes */}
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1.5">Notes (optional)</label>
-                                    <textarea
-                                        className="input-field shadow-sm min-h-[80px] resize-none"
+                                    <SpeechTextarea
+                                        className="input-field shadow-sm min-h-[80px]"
                                         placeholder="Any observations, issues, or progress notes..."
                                         value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
+                                        onChange={setNotes}
                                     />
                                 </div>
 
@@ -537,20 +540,39 @@ export default function SiteLogsPage() {
                                     <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
                                         <HiOutlineCamera className="w-4 h-4 text-indigo-500" /> Site Photos / Videos
                                     </label>
-                                    <div
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="border-2 border-dashed border-slate-200 rounded-2xl p-6 text-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/30 transition-all"
-                                    >
-                                        <HiOutlineCamera className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                                        <p className="text-sm text-slate-500 font-medium">Tap to capture or upload photos</p>
-                                        <p className="text-xs text-slate-400 mt-1">Max 10MB per file • JPG, PNG, MP4</p>
+                                    <div className="grid grid-cols-2 gap-2 mb-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 rounded-xl text-sm font-medium text-slate-500 hover:border-orange-300 hover:text-orange-600 hover:bg-orange-50/30 transition-all"
+                                        >
+                                            <HiOutlineCamera className="w-4 h-4" /> Take Photo
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => galleryInputRef.current?.click()}
+                                            className="flex items-center justify-center gap-2 py-3 border-2 border-dashed border-slate-200 rounded-xl text-sm font-medium text-slate-500 hover:border-indigo-300 hover:text-indigo-600 hover:bg-indigo-50/30 transition-all"
+                                        >
+                                            <HiOutlinePhoto className="w-4 h-4" /> From Gallery
+                                        </button>
                                     </div>
+                                    <p className="text-xs text-slate-400 mb-2">Max 10MB per file • JPG, PNG, MP4</p>
+                                    {/* Camera input */}
                                     <input
                                         ref={fileInputRef}
                                         type="file"
                                         accept="image/*,video/*"
                                         multiple
                                         capture="environment"
+                                        onChange={handleFileSelect}
+                                        className="hidden"
+                                    />
+                                    {/* Gallery input */}
+                                    <input
+                                        ref={galleryInputRef}
+                                        type="file"
+                                        accept="image/*,video/*"
+                                        multiple
                                         onChange={handleFileSelect}
                                         className="hidden"
                                     />

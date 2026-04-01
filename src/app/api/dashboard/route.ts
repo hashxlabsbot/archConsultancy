@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 // GET /api/dashboard — Role-aware dashboard data
-export async function GET(req: NextRequest) {
+export async function GET() {
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {
@@ -15,6 +15,8 @@ export async function GET(req: NextRequest) {
         const role = (session.user as any).role;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
 
         // Common stats
         const [totalEmployees, runningProjects, completedProjects, todayAttendance, pendingLeaves] = await Promise.all([
@@ -24,6 +26,18 @@ export async function GET(req: NextRequest) {
             prisma.attendance.count({ where: { date: { gte: today } } }),
             prisma.leave.count({ where: { status: 'PENDING' } }),
         ]);
+
+        // Today's approved leaves (employees on leave today)
+        const todayOnLeave = await prisma.leave.findMany({
+            where: {
+                status: 'APPROVED',
+                startDate: { lte: today },
+                endDate: { gte: today },
+            },
+            include: {
+                user: { select: { id: true, name: true, role: true, designation: true } },
+            },
+        });
 
         // Role-specific data
         let myAttendance = null;
@@ -35,14 +49,19 @@ export async function GET(req: NextRequest) {
                 include: { reports: true },
             });
 
-            const usedLeaves = await prisma.leave.count({
-                where: {
-                    userId,
-                    status: 'APPROVED',
-                    startDate: { gte: new Date(today.getFullYear(), 0, 1) },
-                },
-            });
-            myLeaveBalance = { total: 19, used: usedLeaves, remaining: 19 - usedLeaves };
+            const [usedLeaves, currentUser] = await Promise.all([
+                prisma.leave.count({
+                    where: {
+                        userId,
+                        status: 'APPROVED',
+                        startDate: { gte: new Date(today.getFullYear(), 0, 1) },
+                    },
+                }),
+                prisma.user.findUnique({ where: { id: userId } }) as any,
+            ]);
+            const adjustment = (currentUser as any)?.leaveAdjustment ?? 0;
+            const totalUsed = usedLeaves + adjustment;
+            myLeaveBalance = { total: 19, used: totalUsed, remaining: Math.max(0, 19 - totalUsed) };
         }
 
         // Recent reports (for managers)
@@ -85,6 +104,16 @@ export async function GET(req: NextRequest) {
             myLeaveBalance,
             recentReports,
             teamAttendance,
+            todayOnLeave: todayOnLeave.map((l) => ({
+                id: l.id,
+                userId: l.userId,
+                name: l.user.name,
+                role: l.user.role,
+                designation: (l.user as any).designation,
+                type: l.type,
+                startDate: l.startDate,
+                endDate: l.endDate,
+            })),
         });
     } catch (error) {
         console.error('Dashboard error:', error);

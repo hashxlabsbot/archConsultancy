@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
+import SpeechTextarea from '@/components/SpeechTextarea';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     HiOutlineCalendarDays,
@@ -360,7 +361,13 @@ export default function LeavesPage() {
 
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 mb-1.5">Reason / Comments</label>
-                                        <textarea className="input-field shadow-sm min-h-[100px] resize-none" placeholder="Provide a brief reason for your request..." value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })} required />
+                                        <SpeechTextarea
+                                            className="input-field shadow-sm min-h-[100px]"
+                                            placeholder="Provide a brief reason for your request..."
+                                            value={form.reason}
+                                            onChange={(val) => setForm({ ...form, reason: val })}
+                                            required
+                                        />
                                     </div>
                                 </div>
 

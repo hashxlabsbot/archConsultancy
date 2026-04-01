@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { HiOutlineMapPin, HiOutlinePhoto, HiOutlineTrash, HiOutlineCheck, HiOutlineArrowUpTray } from 'react-icons/hi2';
+import { HiOutlineMapPin, HiOutlineTrash, HiOutlineCheck, HiOutlineArrowUpTray, HiOutlineCamera, HiOutlinePhoto } from 'react-icons/hi2';
+import SpeechTextarea from '@/components/SpeechTextarea';
 import toast from 'react-hot-toast';
 
 export default function NewSiteVisitPage() {
@@ -13,6 +14,9 @@ export default function NewSiteVisitPage() {
     const [photoFiles, setPhotoFiles] = useState<File[]>([]);
     const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
     const [uploadingPhotos, setUploadingPhotos] = useState(false);
+
+    const cameraInputRef = useRef<HTMLInputElement>(null);
+    const galleryInputRef = useRef<HTMLInputElement>(null);
 
     const [formData, setFormData] = useState({
         projectId: '',
@@ -66,7 +70,6 @@ export default function NewSiteVisitPage() {
             reader.onloadend = () => setPhotoPreviews(prev => [...prev, reader.result as string]);
             reader.readAsDataURL(file);
         });
-        // reset input so same file can be re-selected
         e.target.value = '';
     };
 
@@ -177,13 +180,19 @@ export default function NewSiteVisitPage() {
                         <input type="text" className="input-field text-sm" placeholder="Specific area / floor / landmark (optional)" value={formData.address} onChange={e => setFormData({ ...formData, address: e.target.value })} />
                     </div>
 
-                    {/* Notes */}
+                    {/* Notes with Speech */}
                     <div>
                         <label className="input-label">Field Notes</label>
-                        <textarea className="input-field min-h-[120px] resize-y" placeholder="Describe progress, issues, meetings held on site..." value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} required />
+                        <SpeechTextarea
+                            className="input-field min-h-[120px]"
+                            placeholder="Describe progress, issues, meetings held on site..."
+                            value={formData.notes}
+                            onChange={(val) => setFormData({ ...formData, notes: val })}
+                            required
+                        />
                     </div>
 
-                    {/* Photos */}
+                    {/* Photos with camera/gallery split */}
                     <div>
                         <label className="input-label">Site Photos ({photoFiles.length}/4)</label>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-2">
@@ -196,13 +205,44 @@ export default function NewSiteVisitPage() {
                                 </div>
                             ))}
                             {photoFiles.length < 4 && (
-                                <label className="aspect-square border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-slate-50 hover:bg-slate-100 hover:border-indigo-300 transition-colors cursor-pointer text-slate-400 hover:text-indigo-500">
-                                    <HiOutlinePhoto className="w-6 h-6 mb-1" />
-                                    <span className="text-xs font-medium">Add Photo</span>
-                                    <input type="file" accept="image/*" multiple onChange={handlePhotoSelect} className="hidden" />
-                                </label>
+                                <div className="aspect-square flex flex-col gap-1.5">
+                                    <button
+                                        type="button"
+                                        onClick={() => cameraInputRef.current?.click()}
+                                        className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-slate-50 hover:bg-orange-50 hover:border-orange-300 transition-colors cursor-pointer text-slate-400 hover:text-orange-500"
+                                    >
+                                        <HiOutlineCamera className="w-5 h-5 mb-0.5" />
+                                        <span className="text-[10px] font-medium">Camera</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => galleryInputRef.current?.click()}
+                                        className="flex-1 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-slate-50 hover:bg-indigo-50 hover:border-indigo-300 transition-colors cursor-pointer text-slate-400 hover:text-indigo-500"
+                                    >
+                                        <HiOutlinePhoto className="w-5 h-5 mb-0.5" />
+                                        <span className="text-[10px] font-medium">Gallery</span>
+                                    </button>
+                                </div>
                             )}
                         </div>
+                        {/* Camera input */}
+                        <input
+                            ref={cameraInputRef}
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            onChange={handlePhotoSelect}
+                            className="hidden"
+                        />
+                        {/* Gallery input */}
+                        <input
+                            ref={galleryInputRef}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={handlePhotoSelect}
+                            className="hidden"
+                        />
                         <p className="text-xs text-slate-400 mt-1.5">Max 4 photos · 10MB each · Uploaded to cloud storage</p>
                     </div>
 

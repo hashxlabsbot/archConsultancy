@@ -20,7 +20,8 @@ import {
 export default function BottomNav() {
     const pathname = usePathname();
     const { data: session } = useSession();
-    const role = (session?.user as any)?.role || 'JUNIOR';
+    const rawRole = (session?.user as any)?.role;
+    const role = rawRole ? String(rawRole).trim().toUpperCase() : 'JUNIOR';
 
     const attendancePath = role === 'ADMIN' ? '/admin-attendance' : '/attendance';
 

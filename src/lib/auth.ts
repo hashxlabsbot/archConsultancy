@@ -64,7 +64,7 @@ export const authOptions: NextAuthOptions = {
                 }
 
                 (session.user as any).id = token.id;
-                (session.user as any).role = dbUser.role;
+                (session.user as any).role = dbUser.role.trim().toUpperCase();
                 (session.user as any).name = dbUser.name;
             }
             return session;

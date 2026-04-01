@@ -36,6 +36,7 @@ const menuItems = [
     { path: '/reports', label: 'Daily Reports', icon: HiOutlineDocumentText, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
     { path: '/admin/salary', label: 'Salary Setup', icon: HiOutlineCurrencyRupee, roles: ['ADMIN'] },
+    { path: '/admin/leave-balances', label: 'Leave Balances', icon: HiOutlineCalendarDays, roles: ['ADMIN'] },
     { path: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
     { path: '/profile', label: 'My Profile', icon: HiOutlineUserCircle, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
@@ -54,11 +55,17 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
     const pathname = usePathname();
     const { data: session } = useSession();
     const [collapsed, setCollapsed] = useState(false);
-    const userRole = (session?.user as any)?.role || 'JUNIOR';
+    // Normalize role: trim whitespace, uppercase — guards against DB inconsistencies
+    const rawRole = (session?.user as any)?.role;
+    const userRole = rawRole ? String(rawRole).trim().toUpperCase() : 'JUNIOR';
     const userName = session?.user?.name || 'User';
     const initials = userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
-    const filteredMenu = menuItems.filter((item) => item.roles.includes(userRole));
+    // If role doesn't match any item (unknown/custom role), fall back to JUNIOR items so menu is never blank
+    let filteredMenu = menuItems.filter((item) => item.roles.includes(userRole));
+    if (filteredMenu.length === 0) {
+        filteredMenu = menuItems.filter((item) => item.roles.includes('JUNIOR'));
+    }
 
     const roleColors: Record<string, string> = {
         ADMIN: 'bg-violet-100 text-violet-700',

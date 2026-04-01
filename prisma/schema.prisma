@@ -21,9 +21,10 @@ model User {
   designation  String?
   fathersName  String?
   joiningDate  DateTime?
-  panCard      String?
-  aadharNo     String?
-  createdAt    DateTime @default(now())
+  panCard          String?
+  aadharNo         String?
+  leaveAdjustment  Int      @default(0) // manually added pre-consumed leaves (for mid-year onboarding)
+  createdAt        DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   attendances              Attendance[]
