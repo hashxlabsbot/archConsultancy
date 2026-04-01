@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import {
     HiOutlineMicrophone,
@@ -33,7 +33,6 @@ export default function SpeechTextarea({
 }: SpeechTextareaProps) {
     const { data: session } = useSession();
     const role = ((session?.user as any)?.role || '').trim().toUpperCase();
-    // Allow audio recording for supervisors and engineers
     const canRecordAudio = role === 'SITE_SUPERVISOR' || role === 'SITE_ENGINEER' || role === 'ADMIN';
 
     const [isListening, setIsListening] = useState(false);
@@ -41,28 +40,28 @@ export default function SpeechTextarea({
     const [isHindi, setIsHindi] = useState(false);
     const [isTranslating, setIsTranslating] = useState(false);
     const [audioUrl, setAudioUrl] = useState<string | null>(initialAudioUrl || null);
-    const [timeLeft, setTimeLeft] = useState(300); // 5 mins in seconds
+    const [timeLeft, setTimeLeft] = useState(300);
 
-    // Refs to avoid stale closures
-    const recognitionRef = useRef<any>(null);
-    const finalRef = useRef('');          // English text confirmed before this session
-    const hindiBufferRef = useRef('');    // Raw Hindi accumulation for this session
-    const isHindiRef = useRef(false);     // Mirrors isHindi state inside event callbacks
-    const isListeningRef = useRef(false); // Mirrors isListening state for callbacks
+    // Stable refs — never stale inside async callbacks
+    const isListeningRef = useRef(false);
+    const isHindiRef = useRef(false);
+    const finalRef = useRef('');        // confirmed English text accumulated this session
+    const hindiBufferRef = useRef('');  // raw Hindi text accumulated this session
+    const onChangeRef = useRef(onChange);
+    onChangeRef.current = onChange;     // always points to latest onChange prop
+
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
-
+    const recognitionRef = useRef<any>(null);
     const timerRef = useRef<any>(null);
+    const restartTimerRef = useRef<any>(null);
 
-    // ── Timer Logic ───────────────────────────────────────────────────────────
+    // ── Timer ─────────────────────────────────────────────────────────────────
     const startTimer = () => {
         setTimeLeft(300);
         timerRef.current = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev <= 1) {
-                    stopListening();
-                    return 0;
-                }
+            setTimeLeft(prev => {
+                if (prev <= 1) { stopListening(); return 0; }
                 return prev - 1;
             });
         }, 1000);
@@ -70,9 +69,10 @@ export default function SpeechTextarea({
 
     const stopTimer = () => {
         if (timerRef.current) clearInterval(timerRef.current);
+        if (restartTimerRef.current) clearTimeout(restartTimerRef.current);
     };
 
-    // ── Audio recording (eligible roles only) ────────────────────────────────
+    // ── Audio recording ───────────────────────────────────────────────────────
     const startAudioRecording = async () => {
         if (!canRecordAudio) return;
         try {
@@ -87,16 +87,13 @@ export default function SpeechTextarea({
                 const url = URL.createObjectURL(blob);
                 setAudioUrl(url);
                 if (onAudioChange) onAudioChange(blob);
-                stream.getTracks().forEach((t) => t.stop());
+                stream.getTracks().forEach(t => t.stop());
             };
             mediaRecorderRef.current = recorder;
             recorder.start();
         } catch (err: any) {
             const isDenied = err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError';
-            if (isDenied) {
-                toast.error('Microphone access denied. Please allow microphone in your browser settings.');
-            }
-            // Audio recording won't work, but speech recognition may still proceed
+            if (isDenied) toast.error('Microphone access denied. Please allow microphone in your browser settings.');
         }
     };
 
@@ -108,38 +105,42 @@ export default function SpeechTextarea({
         } catch { }
     };
 
-    // ── Translation via MyMemory (free, no API key) ───────────────────────────
+    // ── Translation with 5-second timeout fallback ────────────────────────────
     const translateHindiToEnglish = async (text: string): Promise<string> => {
         if (!text.trim()) return text;
         try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 5000);
             const res = await fetch(
-                `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim())}&langpair=hi|en`
+                `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim())}&langpair=hi|en`,
+                { signal: controller.signal }
             );
+            clearTimeout(timeout);
             const data = await res.json();
             const translated = data.responseData?.translatedText;
-            return translated && translated !== text ? translated : text;
+            // Return translated text only if it's different and looks like English
+            if (translated && translated !== text.trim() && translated !== 'PLEASE SELECT TWO DISTINCT LANGUAGES') {
+                return translated;
+            }
+            return text;
         } catch {
+            // Timeout or network error — return original Hindi text
             return text;
         }
     };
 
-    // ── Speech recognition ────────────────────────────────────────────────────
-    const startListening = async () => {
-        const SpeechRecognition =
-            (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            toast.error('Speech recognition is not supported. Please use Chrome or Edge.');
-            return;
-        }
-
-        finalRef.current = value;
-        hindiBufferRef.current = '';
-        isHindiRef.current = isHindi;
+    // ── Core: create a fresh recognition instance for each utterance ──────────
+    // Using continuous:false + per-utterance restart is far more reliable than
+    // continuous:true on Chrome, which can silently stop firing onresult.
+    const startRecognitionSession = useCallback(() => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition || !isListeningRef.current) return;
 
         const recognition = new SpeechRecognition();
-        recognition.continuous = true;
+        recognition.continuous = false;       // single utterance — restart in onend
         recognition.interimResults = true;
-        recognition.lang = isHindi ? 'hi-IN' : 'en-IN';
+        recognition.lang = isHindiRef.current ? 'hi-IN' : 'en-US';
+        recognition.maxAlternatives = 1;
 
         recognition.onresult = (event: any) => {
             let interimText = '';
@@ -154,80 +155,118 @@ export default function SpeechTextarea({
             }
 
             if (isHindiRef.current) {
+                // Accumulate Hindi — show as bracketed preview until translated
                 hindiBufferRef.current += newFinalText;
-                const preview = finalRef.current +
+                const preview =
+                    finalRef.current +
                     (hindiBufferRef.current ? `[${hindiBufferRef.current.trim()}] ` : '') +
                     (interimText ? `[${interimText}]` : '');
-                onChange(preview);
+                onChangeRef.current(preview);
             } else {
                 if (newFinalText) finalRef.current += newFinalText;
-                onChange(finalRef.current + interimText);
+                onChangeRef.current(finalRef.current + interimText);
             }
         };
 
         recognition.onerror = (e: any) => {
-            // Non-fatal: no-speech or aborted — let onend handle the restart
+            // no-speech: user was quiet — onend will restart, nothing to do
             if (e.error === 'no-speech' || e.error === 'aborted') return;
 
-            // Fatal errors — stop everything and notify the user
+            // Fatal errors — stop and inform user
             isListeningRef.current = false;
             setIsListening(false);
             stopAudioRecording();
             stopTimer();
 
             if (e.error === 'not-allowed' || e.error === 'audio-capture') {
-                toast.error('Microphone access denied. Please allow microphone in your browser settings.');
+                toast.error('Microphone access denied. Allow microphone in browser settings.');
             } else if (e.error === 'network') {
-                toast.error('Speech recognition requires an internet connection.');
+                toast.error('Speech recognition needs an internet connection.');
+            } else if (e.error === 'language-not-supported') {
+                toast.error('Speech language not supported in this browser.');
             } else if (e.error === 'service-not-allowed') {
-                toast.error('Speech recognition is not available. Try using Chrome or Edge on HTTPS.');
+                toast.error('Speech recognition unavailable. Use Chrome/Edge on HTTPS.');
+            } else {
+                toast.error(`Speech error: ${e.error}. Try again.`);
             }
         };
 
         recognition.onend = () => {
-            // If the user didn't stop it, and we are still listening, restart it
-            // This handles the "4-5 sec" auto-stop in some browsers
-            if (isListeningRef.current) {
-                try {
-                    recognition.start();
-                    return; // Don't proceed to translation yet
-                } catch {
-                    // Restart failed — clean up properly
-                    isListeningRef.current = false;
-                }
+            if (!isListeningRef.current) {
+                // User pressed stop — finalize
+                finalizeRecognition();
+                return;
             }
-
-            stopAudioRecording();
-            stopTimer();
-            if (isHindiRef.current && hindiBufferRef.current.trim()) {
-                setIsTranslating(true);
-                translateHindiToEnglish(hindiBufferRef.current).then(translated => {
-                    finalRef.current += translated + ' ';
-                    onChange(finalRef.current.trimEnd());
-                    hindiBufferRef.current = '';
-                    setIsTranslating(false);
-                    setIsListening(false);
-                }).catch(() => {
-                    setIsTranslating(false);
-                    setIsListening(false);
-                });
-            } else {
-                setIsListening(false);
-            }
+            // Still listening — start a new instance after a short delay
+            // (delay prevents rapid-fire restart loops on some Chrome versions)
+            restartTimerRef.current = setTimeout(startRecognitionSession, 80);
         };
 
         recognitionRef.current = recognition;
+        try {
+            recognition.start();
+        } catch {
+            // start() threw (e.g. already started in a race) — retry after delay
+            if (isListeningRef.current) {
+                restartTimerRef.current = setTimeout(startRecognitionSession, 200);
+            }
+        }
+    }, []); // stable — reads all state via refs
+
+    const finalizeRecognition = () => {
+        stopAudioRecording();
+        stopTimer();
+
+        if (isHindiRef.current && hindiBufferRef.current.trim()) {
+            setIsTranslating(true);
+            translateHindiToEnglish(hindiBufferRef.current).then(translated => {
+                finalRef.current += translated + ' ';
+                onChangeRef.current(finalRef.current.trimEnd());
+                hindiBufferRef.current = '';
+                setIsTranslating(false);
+                setIsListening(false);
+            }).catch(() => {
+                // Fallback: keep Hindi text as-is
+                finalRef.current += hindiBufferRef.current;
+                onChangeRef.current(finalRef.current.trimEnd());
+                hindiBufferRef.current = '';
+                setIsTranslating(false);
+                setIsListening(false);
+            });
+        } else {
+            setIsListening(false);
+        }
+    };
+
+    // ── Public start/stop ──────────────────────────────────────────────────────
+    const startListening = async () => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            toast.error('Speech recognition is not supported. Please use Chrome or Edge.');
+            return;
+        }
+
+        // Seed refs from current state/props
+        finalRef.current = value;
+        hindiBufferRef.current = '';
+        isHindiRef.current = isHindi;
         isListeningRef.current = true;
-        recognition.start();
+
         setIsListening(true);
         startTimer();
+        startRecognitionSession();
         await startAudioRecording();
     };
 
     const stopListening = () => {
         isListeningRef.current = false;
-        recognitionRef.current?.stop();
-        stopTimer();
+        clearTimeout(restartTimerRef.current);
+        try { recognitionRef.current?.stop(); } catch { }
+        // finalizeRecognition is called from onend after stop()
+        // but if onend never fires, call it ourselves after a timeout
+        setTimeout(() => {
+            if (isListeningRef.current === false) finalizeRecognition();
+        }, 500);
     };
 
     // ── Text-to-speech ────────────────────────────────────────────────────────
@@ -235,7 +274,7 @@ export default function SpeechTextarea({
         if (!value || !('speechSynthesis' in window)) return;
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(value);
-        utterance.lang = 'en-IN';
+        utterance.lang = 'en-US';
         utterance.rate = 0.95;
         utterance.onend = () => setIsSpeaking(false);
         utterance.onerror = () => setIsSpeaking(false);
@@ -260,7 +299,7 @@ export default function SpeechTextarea({
             <div className="relative">
                 <textarea
                     value={value}
-                    onChange={(e) => onChange(e.target.value)}
+                    onChange={(e) => onChangeRef.current(e.target.value)}
                     placeholder={placeholder}
                     required={required}
                     rows={rows}
@@ -280,7 +319,7 @@ export default function SpeechTextarea({
                         className={`px-1.5 py-1 rounded-lg text-[10px] font-bold transition-all shadow-sm ${isHindi
                             ? 'bg-orange-100 text-orange-600 ring-2 ring-orange-300'
                             : 'bg-slate-100 text-slate-500 hover:bg-orange-50 hover:text-orange-500'
-                            }`}
+                        }`}
                     >
                         {isHindi ? 'HI' : 'EN'}
                     </button>
@@ -289,17 +328,19 @@ export default function SpeechTextarea({
                     <button
                         type="button"
                         onClick={isListening ? stopListening : startListening}
+                        disabled={isTranslating}
                         title={
-                            isListening
-                                ? 'Stop & translate'
-                                : isHindi
-                                    ? 'Speak in Hindi — will auto-translate to English'
-                                    : 'Speak to type'
+                            isTranslating ? 'Translating…'
+                                : isListening ? 'Stop & save'
+                                    : isHindi ? 'Speak in Hindi — auto-translates to English'
+                                        : 'Speak to type'
                         }
                         className={`p-1.5 rounded-lg transition-all shadow-sm ${isListening
                             ? 'bg-red-100 text-red-600 animate-pulse ring-2 ring-red-300'
-                            : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
-                            }`}
+                            : isTranslating
+                                ? 'bg-amber-100 text-amber-600 cursor-wait'
+                                : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
+                        }`}
                     >
                         {isListening ? (
                             <HiOutlineStopCircle className="w-4 h-4" />
@@ -309,7 +350,7 @@ export default function SpeechTextarea({
                     </button>
 
                     {/* Speaker button */}
-                    {value.trim() && !isListening && (
+                    {value.trim() && !isListening && !isTranslating && (
                         <button
                             type="button"
                             onClick={isSpeaking ? stopSpeaking : speak}
@@ -317,7 +358,7 @@ export default function SpeechTextarea({
                             className={`p-1.5 rounded-lg transition-all shadow-sm ${isSpeaking
                                 ? 'bg-indigo-100 text-indigo-600 animate-pulse ring-2 ring-indigo-300'
                                 : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
-                                }`}
+                            }`}
                         >
                             {isSpeaking ? (
                                 <HiOutlineStopCircle className="w-4 h-4" />
@@ -329,18 +370,20 @@ export default function SpeechTextarea({
                 </div>
             </div>
 
-            {/* Status bar & Timer */}
+            {/* Status bar */}
             {(isListening || isTranslating) && (
-                <div className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${isTranslating ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'
-                    }`}>
+                <div className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
+                    isTranslating ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'
+                }`}>
                     <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isTranslating ? 'bg-amber-400 animate-pulse' : 'bg-red-500 animate-pulse'
-                            }`} />
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            isTranslating ? 'bg-amber-400 animate-pulse' : 'bg-red-500 animate-pulse'
+                        }`} />
                         {isTranslating
                             ? 'Translating Hindi → English…'
                             : isHindi
-                                ? 'Listening in Hindi — will translate when you stop'
-                                : 'Listening…'}
+                                ? 'Listening in Hindi — tap stop to translate'
+                                : 'Listening… speak now'}
                     </div>
                     {isListening && (
                         <span className="font-mono bg-white/50 px-1.5 py-0.5 rounded border border-red-200">
@@ -350,10 +393,10 @@ export default function SpeechTextarea({
                 </div>
             )}
 
-            {/* Hindi mode hint (idle) */}
+            {/* Hindi mode idle hint */}
             {isHindi && !isListening && !isTranslating && (
                 <p className="text-[11px] text-orange-500 font-medium px-1">
-                    Hindi mode active — speak in Hindi, it will be saved in English.
+                    Hindi mode — speak in Hindi, saved in English.
                 </p>
             )}
 
@@ -362,7 +405,7 @@ export default function SpeechTextarea({
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex items-center gap-3">
                     <div className="flex-1">
                         <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wider mb-1.5">
-                            {canRecordAudio ? 'Recorded Audio Reference' : 'Audio Instruction Reference'}
+                            {canRecordAudio ? 'Recorded Audio' : 'Audio Reference'}
                         </p>
                         <audio controls src={audioUrl} className="w-full" style={{ height: '32px' }} />
                     </div>

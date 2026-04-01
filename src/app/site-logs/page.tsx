@@ -265,7 +265,9 @@ export default function SiteLogsPage() {
                             {isFetching && <div className="w-4 h-4 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />}
                         </h1>
                         <p className="text-slate-500 text-sm mt-1">
-                            {isAdmin ? 'Monitor site supervisor activities, labour counts, and site media.' : 'Log daily activities, upload site photos, and track on-site manpower.'}
+                            {isAdmin
+                                ? 'Viewing logs from ALL supervisors/engineers. Use the supervisor filter to narrow down.'
+                                : 'Showing your own submitted logs only.'}
                         </p>
                     </div>
                     {canSubmit && (
@@ -488,7 +490,11 @@ export default function SiteLogsPage() {
                                                     {log.project?.client && <span className="font-normal text-slate-400 ml-1">· {log.project.client}</span>}
                                                 </h3>
                                                 {isAdmin && (
-                                                    <p className="text-xs text-slate-500">by {log.user?.name}</p>
+                                                    <p className="text-xs font-semibold text-indigo-600 flex items-center gap-1">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
+                                                        {log.user?.name}
+                                                        <span className="text-slate-400 font-normal">· {log.user?.role?.replace('_', ' ')}</span>
+                                                    </p>
                                                 )}
                                             </div>
                                         </div>
