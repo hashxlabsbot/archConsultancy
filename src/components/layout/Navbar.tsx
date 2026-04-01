@@ -220,7 +220,7 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
                     {/* Right side */}
                     <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                         {/* Attendance Quick Actions */}
-                        {role !== 'ADMIN' && (
+                        {role !== 'ADMIN' && role !== 'SITE_SUPERVISOR' && (
                             <div className="hidden sm:flex items-center">
                                 {!attendanceState.checkedIn ? (
                                     <Link href="/attendance" className="btn-primary py-1.5 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-sm transition-colors">
