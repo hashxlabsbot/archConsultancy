@@ -20,8 +20,11 @@ import {
     HiOutlineChevronRight,
     HiOutlineMicrophone,
     HiOutlineMapPin,
+    HiOutlineCheckCircle,
+    HiOutlineClock,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
+import { formatTime } from '@/lib/utils';
 
 export default function SiteLogsPage() {
     const { data: session } = useSession();
