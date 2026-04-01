@@ -25,6 +25,38 @@ export default function BottomNav() {
 
     const attendancePath = role === 'ADMIN' ? '/admin-attendance' : '/attendance';
 
+    // Site supervisors only see the Site Logs tab
+    if (role === 'SITE_SUPERVISOR') {
+        const isActive = pathname === '/site-logs';
+        return (
+            <nav
+                className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-100"
+                style={{ boxShadow: '0 -4px 24px rgba(99,102,241,0.08)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+            >
+                <div className="flex items-stretch">
+                    <Link
+                        href="/site-logs"
+                        className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 relative"
+                    >
+                        {isActive && (
+                            <motion.div
+                                layoutId="bottomNavIndicator"
+                                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-orange-500"
+                                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                            />
+                        )}
+                        {isActive
+                            ? <HiWrenchScrewdriver className="w-5 h-5 text-orange-500" />
+                            : <HiOutlineWrenchScrewdriver className="w-5 h-5 text-slate-400" />}
+                        <span className={`text-[10px] font-semibold ${isActive ? 'text-orange-500' : 'text-slate-400'}`}>
+                            Site Log
+                        </span>
+                    </Link>
+                </div>
+            </nav>
+        );
+    }
+
     const tabs = [
         {
             label: 'Home',
@@ -46,7 +78,7 @@ export default function BottomNav() {
             icon: HiOutlineFolderOpen,
             activeIcon: HiFolderOpen,
             match: (p: string) => p.startsWith('/projects'),
-            hidden: role === 'SITE_SUPERVISOR' || role === 'NON_TECHNICAL',
+            hidden: role === 'NON_TECHNICAL',
         },
         {
             label: 'Notice',

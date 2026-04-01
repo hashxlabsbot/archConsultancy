@@ -12,6 +12,8 @@ import {
 interface SpeechTextareaProps {
     value: string;
     onChange: (val: string) => void;
+    onAudioChange?: (blob: Blob | null) => void;
+    initialAudioUrl?: string;
     placeholder?: string;
     className?: string;
     required?: boolean;
@@ -21,6 +23,8 @@ interface SpeechTextareaProps {
 export default function SpeechTextarea({
     value,
     onChange,
+    onAudioChange,
+    initialAudioUrl,
     placeholder,
     className = '',
     required,
@@ -28,25 +32,48 @@ export default function SpeechTextarea({
 }: SpeechTextareaProps) {
     const { data: session } = useSession();
     const role = ((session?.user as any)?.role || '').trim().toUpperCase();
-    const isSiteSupervisor = role === 'SITE_SUPERVISOR';
+    // Allow audio recording for supervisors and engineers
+    const canRecordAudio = role === 'SITE_SUPERVISOR' || role === 'SITE_ENGINEER' || role === 'ADMIN';
 
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isHindi, setIsHindi] = useState(false);
     const [isTranslating, setIsTranslating] = useState(false);
-    const [audioUrl, setAudioUrl] = useState<string | null>(null);
+    const [audioUrl, setAudioUrl] = useState<string | null>(initialAudioUrl || null);
+    const [timeLeft, setTimeLeft] = useState(300); // 5 mins in seconds
 
     // Refs to avoid stale closures
     const recognitionRef = useRef<any>(null);
     const finalRef = useRef('');          // English text confirmed before this session
     const hindiBufferRef = useRef('');    // Raw Hindi accumulation for this session
     const isHindiRef = useRef(false);     // Mirrors isHindi state inside event callbacks
+    const isListeningRef = useRef(false); // Mirrors isListening state for callbacks
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
 
-    // ── Audio recording (site supervisor only) ────────────────────────────────
+    const timerRef = useRef<any>(null);
+
+    // ── Timer Logic ───────────────────────────────────────────────────────────
+    const startTimer = () => {
+        setTimeLeft(300);
+        timerRef.current = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev <= 1) {
+                    stopListening();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    };
+
+    const stopTimer = () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+    };
+
+    // ── Audio recording (eligible roles only) ────────────────────────────────
     const startAudioRecording = async () => {
-        if (!isSiteSupervisor) return;
+        if (!canRecordAudio) return;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             audioChunksRef.current = [];
@@ -58,6 +85,7 @@ export default function SpeechTextarea({
                 const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
                 const url = URL.createObjectURL(blob);
                 setAudioUrl(url);
+                if (onAudioChange) onAudioChange(blob);
                 stream.getTracks().forEach((t) => t.stop());
             };
             mediaRecorderRef.current = recorder;
@@ -84,10 +112,9 @@ export default function SpeechTextarea({
             );
             const data = await res.json();
             const translated = data.responseData?.translatedText;
-            // MyMemory returns the original if translation fails
             return translated && translated !== text ? translated : text;
         } catch {
-            return text; // Fallback: keep original text
+            return text;
         }
     };
 
@@ -100,7 +127,6 @@ export default function SpeechTextarea({
             return;
         }
 
-        // Snapshot state for this session
         finalRef.current = value;
         hindiBufferRef.current = '';
         isHindiRef.current = isHindi;
@@ -123,7 +149,6 @@ export default function SpeechTextarea({
             }
 
             if (isHindiRef.current) {
-                // Accumulate raw Hindi; show it as a live preview with indicator
                 hindiBufferRef.current += newFinalText;
                 const preview = finalRef.current +
                     (hindiBufferRef.current ? `[${hindiBufferRef.current.trim()}] ` : '') +
@@ -135,38 +160,58 @@ export default function SpeechTextarea({
             }
         };
 
-        recognition.onerror = () => {
-            setIsListening(false);
-            stopAudioRecording();
-        };
-
-        // On end: translate accumulated Hindi if needed
-        recognition.onend = async () => {
-            stopAudioRecording();
-            if (isHindiRef.current && hindiBufferRef.current.trim()) {
-                setIsTranslating(true);
-                try {
-                    const translated = await translateHindiToEnglish(hindiBufferRef.current);
-                    finalRef.current += translated + ' ';
-                    onChange(finalRef.current.trimEnd());
-                } finally {
-                    hindiBufferRef.current = '';
-                    setIsTranslating(false);
-                }
+        recognition.onerror = (e: any) => {
+            // Restart if it's a 'no-speech' error to keep it open
+            if (e.error === 'no-speech' && isListening) {
+                try { recognition.start(); } catch { }
+                return;
             }
             setIsListening(false);
+            stopAudioRecording();
+            stopTimer();
+        };
+
+        recognition.onend = () => {
+            // If the user didn't stop it, and we are still listening, restart it
+            // This handles the "4-5 sec" auto-stop in some browsers
+            if (isListeningRef.current) {
+                try {
+                    recognition.start();
+                    return; // Don't proceed to translation yet
+                } catch { }
+            }
+
+            stopAudioRecording();
+            stopTimer();
+            if (isHindiRef.current && hindiBufferRef.current.trim()) {
+                setIsTranslating(true);
+                translateHindiToEnglish(hindiBufferRef.current).then(translated => {
+                    finalRef.current += translated + ' ';
+                    onChange(finalRef.current.trimEnd());
+                    hindiBufferRef.current = '';
+                    setIsTranslating(false);
+                    setIsListening(false);
+                }).catch(() => {
+                    setIsTranslating(false);
+                    setIsListening(false);
+                });
+            } else {
+                setIsListening(false);
+            }
         };
 
         recognitionRef.current = recognition;
+        isListeningRef.current = true;
         recognition.start();
         setIsListening(true);
-
-        // Start audio recording in parallel (site supervisor only)
+        startTimer();
         await startAudioRecording();
     };
 
     const stopListening = () => {
-        recognitionRef.current?.stop(); // triggers recognition.onend → translation
+        isListeningRef.current = false;
+        recognitionRef.current?.stop();
+        stopTimer();
     };
 
     // ── Text-to-speech ────────────────────────────────────────────────────────
@@ -215,11 +260,10 @@ export default function SpeechTextarea({
                             isHindiRef.current = next;
                         }}
                         title={isHindi ? 'Currently Hindi → English. Click for English only.' : 'Click to speak in Hindi (auto-translates to English)'}
-                        className={`px-1.5 py-1 rounded-lg text-[10px] font-bold transition-all shadow-sm ${
-                            isHindi
-                                ? 'bg-orange-100 text-orange-600 ring-2 ring-orange-300'
-                                : 'bg-slate-100 text-slate-500 hover:bg-orange-50 hover:text-orange-500'
-                        }`}
+                        className={`px-1.5 py-1 rounded-lg text-[10px] font-bold transition-all shadow-sm ${isHindi
+                            ? 'bg-orange-100 text-orange-600 ring-2 ring-orange-300'
+                            : 'bg-slate-100 text-slate-500 hover:bg-orange-50 hover:text-orange-500'
+                            }`}
                     >
                         {isHindi ? 'HI' : 'EN'}
                     </button>
@@ -232,14 +276,13 @@ export default function SpeechTextarea({
                             isListening
                                 ? 'Stop & translate'
                                 : isHindi
-                                ? 'Speak in Hindi — will auto-translate to English'
-                                : 'Speak to type'
+                                    ? 'Speak in Hindi — will auto-translate to English'
+                                    : 'Speak to type'
                         }
-                        className={`p-1.5 rounded-lg transition-all shadow-sm ${
-                            isListening
-                                ? 'bg-red-100 text-red-600 animate-pulse ring-2 ring-red-300'
-                                : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
-                        }`}
+                        className={`p-1.5 rounded-lg transition-all shadow-sm ${isListening
+                            ? 'bg-red-100 text-red-600 animate-pulse ring-2 ring-red-300'
+                            : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
+                            }`}
                     >
                         {isListening ? (
                             <HiOutlineStopCircle className="w-4 h-4" />
@@ -254,11 +297,10 @@ export default function SpeechTextarea({
                             type="button"
                             onClick={isSpeaking ? stopSpeaking : speak}
                             title={isSpeaking ? 'Stop reading' : 'Read aloud'}
-                            className={`p-1.5 rounded-lg transition-all shadow-sm ${
-                                isSpeaking
-                                    ? 'bg-indigo-100 text-indigo-600 animate-pulse ring-2 ring-indigo-300'
-                                    : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
-                            }`}
+                            className={`p-1.5 rounded-lg transition-all shadow-sm ${isSpeaking
+                                ? 'bg-indigo-100 text-indigo-600 animate-pulse ring-2 ring-indigo-300'
+                                : 'bg-slate-100 text-slate-400 hover:bg-indigo-100 hover:text-indigo-600'
+                                }`}
                         >
                             {isSpeaking ? (
                                 <HiOutlineStopCircle className="w-4 h-4" />
@@ -270,46 +312,53 @@ export default function SpeechTextarea({
                 </div>
             </div>
 
-            {/* Status bar */}
+            {/* Status bar & Timer */}
             {(isListening || isTranslating) && (
-                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
-                    isTranslating ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'
-                }`}>
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        isTranslating ? 'bg-amber-400 animate-pulse' : 'bg-red-500 animate-pulse'
-                    }`} />
-                    {isTranslating
-                        ? 'Translating Hindi → English…'
-                        : isHindi
-                        ? 'Listening in Hindi — spoken text will be translated to English when you stop'
-                        : 'Listening…'}
+                <div className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${isTranslating ? 'bg-amber-50 text-amber-700' : 'bg-red-50 text-red-600'
+                    }`}>
+                    <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isTranslating ? 'bg-amber-400 animate-pulse' : 'bg-red-500 animate-pulse'
+                            }`} />
+                        {isTranslating
+                            ? 'Translating Hindi → English…'
+                            : isHindi
+                                ? 'Listening in Hindi — will translate when you stop'
+                                : 'Listening…'}
+                    </div>
+                    {isListening && (
+                        <span className="font-mono bg-white/50 px-1.5 py-0.5 rounded border border-red-200">
+                            {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
+                        </span>
+                    )}
                 </div>
             )}
 
             {/* Hindi mode hint (idle) */}
             {isHindi && !isListening && !isTranslating && (
                 <p className="text-[11px] text-orange-500 font-medium px-1">
-                    Hindi mode active — tap the mic and speak in Hindi, it will be saved in English.
+                    Hindi mode active — speak in Hindi, it will be saved in English.
                 </p>
             )}
 
-            {/* Audio playback — site supervisor only */}
-            {isSiteSupervisor && audioUrl && (
+            {/* Audio playback */}
+            {audioUrl && (
                 <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex items-center gap-3">
                     <div className="flex-1">
                         <p className="text-[10px] font-bold text-orange-700 uppercase tracking-wider mb-1.5">
-                            Recorded Audio Reference
+                            {canRecordAudio ? 'Recorded Audio Reference' : 'Audio Instruction Reference'}
                         </p>
                         <audio controls src={audioUrl} className="w-full" style={{ height: '32px' }} />
                     </div>
-                    <button
-                        type="button"
-                        onClick={clearAudio}
-                        title="Discard recording"
-                        className="p-1.5 rounded-lg text-orange-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
-                    >
-                        <HiOutlineTrash className="w-4 h-4" />
-                    </button>
+                    {canRecordAudio && (
+                        <button
+                            type="button"
+                            onClick={clearAudio}
+                            title="Discard recording"
+                            className="p-1.5 rounded-lg text-orange-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                        >
+                            <HiOutlineTrash className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
             )}
         </div>

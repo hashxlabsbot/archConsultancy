@@ -12,11 +12,13 @@ import {
     HiOutlineCheck,
     HiOutlineXMark
 } from 'react-icons/hi2';
+import { useRouter } from 'next/navigation';
 import { formatDate, formatTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function AttendancePage() {
     const { data: session } = useSession();
+    const router = useRouter();
     const role = (session?.user as any)?.role;
 
     const [records, setRecords] = useState<any[]>([]);

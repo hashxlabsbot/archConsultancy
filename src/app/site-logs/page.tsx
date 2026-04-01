@@ -18,6 +18,7 @@ import {
     HiOutlineArrowPath,
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
+    HiOutlineMicrophone,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -38,31 +39,38 @@ export default function SiteLogsPage() {
     const [masonCount, setMasonCount] = useState(0);
     const [coolieCount, setCoolieCount] = useState(0);
     const [helperCount, setHelperCount] = useState(0);
+    const [otherCount, setOtherCount] = useState(0);
     const [notes, setNotes] = useState('');
     const [mediaFiles, setMediaFiles] = useState<File[]>([]);
     const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
+    const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [uploadingMedia, setUploadingMedia] = useState(false);
     const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
 
-    // Filter state for admin
+    // Filter state
     const [filterDate, setFilterDate] = useState(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
+    const [filterProjectId, setFilterProjectId] = useState('');
+    const [filterSupervisorId, setFilterSupervisorId] = useState('');
+    const [allSupervisors, setAllSupervisors] = useState<any[]>([]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         setPage(1);
-    }, [filterDate]);
+    }, [filterDate, filterProjectId, filterSupervisorId]);
 
     useEffect(() => {
         fetchLogs(page);
-    }, [filterDate, page]);
+    }, [filterDate, filterProjectId, filterSupervisorId, page]);
 
     const fetchLogs = async (p: number) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
             if (filterDate) params.set('date', filterDate);
+            if (filterProjectId) params.set('projectId', filterProjectId);
+            if (filterSupervisorId) params.set('supervisorId', filterSupervisorId);
             params.set('page', String(p));
             params.set('limit', '25');
             const res = await fetch(`/api/site-logs?${params.toString()}`);
@@ -70,6 +78,7 @@ export default function SiteLogsPage() {
                 const data = await res.json();
                 setLogs(data.logs || []);
                 setProjects(data.projects || []);
+                setAllSupervisors(data.supervisors || []);
                 if (data.pagination) setPagination(data.pagination);
                 if (data.projects?.length > 0 && !selectedProject) {
                     setSelectedProject(data.projects[0].id);
@@ -128,6 +137,22 @@ export default function SiteLogsPage() {
         }
     };
 
+    const uploadAudio = async (): Promise<string | null> => {
+        if (!audioBlob) return null;
+        setUploadingMedia(true);
+        try {
+            const fd = new FormData();
+            fd.append('file', audioBlob);
+            fd.append('folder', 'site-logs/audio');
+            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+            if (!res.ok) throw new Error('Audio upload failed');
+            const data = await res.json();
+            return data.url as string;
+        } finally {
+            setUploadingMedia(false);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedProject) {
@@ -136,7 +161,11 @@ export default function SiteLogsPage() {
         }
         setSubmitting(true);
         try {
-            const mediaUrls = await uploadMedia();
+            const [mediaUrls, audioUrlResult] = await Promise.all([
+                uploadMedia(),
+                uploadAudio()
+            ]);
+
             const res = await fetch('/api/site-logs', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -145,7 +174,9 @@ export default function SiteLogsPage() {
                     masonCount,
                     coolieCount,
                     helperCount,
+                    otherCount,
                     notes,
+                    audioUrl: audioUrlResult,
                     mediaUrls,
                 }),
             });
@@ -156,6 +187,7 @@ export default function SiteLogsPage() {
                 setMasonCount(0);
                 setCoolieCount(0);
                 setHelperCount(0);
+                setOtherCount(0);
                 setNotes('');
                 setMediaFiles([]);
                 setMediaPreviews([]);
@@ -172,7 +204,8 @@ export default function SiteLogsPage() {
     };
 
     const isAdmin = role === 'ADMIN' || role === 'SENIOR';
-    const canSubmit = role === 'SITE_SUPERVISOR';
+    const isSiteSupervisor = role === 'SITE_SUPERVISOR';
+    const canSubmit = role === 'SITE_SUPERVISOR' || role === 'SITE_ENGINEER' || role === 'ADMIN';
 
     if (loading) {
         return (
@@ -205,30 +238,61 @@ export default function SiteLogsPage() {
                     )}
                 </div>
 
-                {/* Admin: Date Filter */}
-                {isAdmin && (
-                    <div className="glass-card p-4 flex flex-wrap items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <HiOutlineCalendarDays className="w-5 h-5 text-slate-400" />
-                            <input
-                                type="date"
-                                value={filterDate}
-                                onChange={(e) => setFilterDate(e.target.value)}
-                                className="input-field shadow-sm max-w-[200px]"
-                            />
-                        </div>
-                        <button
-                            onClick={() => { setFilterDate(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]); }}
-                            className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
-                        >
-                            Today
-                        </button>
+                {/* Filters */}
+                <div className="glass-card p-4 flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <HiOutlineCalendarDays className="w-5 h-5 text-slate-400" />
+                        <input
+                            type="date"
+                            value={filterDate}
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            className="input-field shadow-sm max-w-[160px] text-xs font-bold"
+                        />
                     </div>
-                )}
+
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                        <select
+                            value={filterProjectId}
+                            onChange={(e) => setFilterProjectId(e.target.value)}
+                            className="input-field shadow-sm text-xs font-bold"
+                        >
+                            <option value="">All Projects</option>
+                            {projects.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {!isSiteSupervisor && (
+                        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                            <select
+                                value={filterSupervisorId}
+                                onChange={(e) => setFilterSupervisorId(e.target.value)}
+                                className="input-field shadow-sm text-xs font-bold"
+                            >
+                                <option value="">All Supervisors</option>
+                                {allSupervisors.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
+                    <button
+                        onClick={() => {
+                            setFilterDate(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
+                            setFilterProjectId('');
+                            setFilterSupervisorId('');
+                        }}
+                        className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
+                    >
+                        Reset
+                    </button>
+                </div>
 
                 {/* Today's Summary Cards */}
                 {logs.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-5 flex items-start justify-between">
                             <div>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Mason</p>
@@ -260,6 +324,17 @@ export default function SiteLogsPage() {
                             </div>
                             <div className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
                                 <HiOutlineWrenchScrewdriver className="w-5 h-5 text-blue-600" />
+                            </div>
+                        </motion.div>
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="glass-card p-5 flex items-start justify-between">
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Other</p>
+                                <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                                    {logs.reduce((sum, l) => sum + (l.otherCount || 0), 0)}
+                                </p>
+                            </div>
+                            <div className="w-11 h-11 rounded-xl bg-violet-100 flex items-center justify-center">
+                                <HiOutlineUserGroup className="w-5 h-5 text-violet-600" />
                             </div>
                         </motion.div>
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="glass-card p-5 flex items-start justify-between">
@@ -326,30 +401,46 @@ export default function SiteLogsPage() {
 
                                     {/* Manpower Info */}
                                     <div className="p-5">
-                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                                        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
                                             <div className="p-3 bg-orange-50 rounded-xl text-center border border-orange-100">
                                                 <p className="text-[10px] font-bold text-orange-600 uppercase tracking-widest mb-1">Mason</p>
-                                                <p className="text-2xl font-extrabold text-orange-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.masonCount}</p>
+                                                <p className="text-2xl font-extrabold text-orange-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.masonCount || 0}</p>
                                             </div>
                                             <div className="p-3 bg-pink-50 rounded-xl text-center border border-pink-100">
                                                 <p className="text-[10px] font-bold text-pink-600 uppercase tracking-widest mb-1">Coolie</p>
-                                                <p className="text-2xl font-extrabold text-pink-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.coolieCount}</p>
+                                                <p className="text-2xl font-extrabold text-pink-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.coolieCount || 0}</p>
                                             </div>
                                             <div className="p-3 bg-blue-50 rounded-xl text-center border border-blue-100">
                                                 <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-1">Helper</p>
-                                                <p className="text-2xl font-extrabold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.helperCount}</p>
+                                                <p className="text-2xl font-extrabold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.helperCount || 0}</p>
+                                            </div>
+                                            <div className="p-3 bg-violet-50 rounded-xl text-center border border-violet-100">
+                                                <p className="text-[10px] font-bold text-violet-600 uppercase tracking-widest mb-1">Other</p>
+                                                <p className="text-2xl font-extrabold text-violet-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.otherCount || 0}</p>
                                             </div>
                                             <div className="p-3 bg-emerald-50 rounded-xl text-center border border-emerald-100">
                                                 <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest mb-1">Total</p>
-                                                <p className="text-2xl font-extrabold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{log.masonCount + log.coolieCount + log.helperCount}</p>
+                                                <p className="text-2xl font-extrabold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{(log.masonCount || 0) + (log.coolieCount || 0) + (log.helperCount || 0) + (log.otherCount || 0)}</p>
                                             </div>
                                         </div>
 
-                                        {/* Notes */}
-                                        {log.notes && (
-                                            <div className="mb-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</p>
-                                                <p className="text-sm text-slate-700 whitespace-pre-wrap">{log.notes}</p>
+                                        {/* Notes & Audio */}
+                                        {(log.notes || log.audioUrl) && (
+                                            <div className="mb-4 lg:flex gap-4">
+                                                {log.notes && (
+                                                    <div className="flex-1 p-3 bg-slate-50 rounded-xl border border-slate-100 mb-3 lg:mb-0">
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notes</p>
+                                                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{log.notes}</p>
+                                                    </div>
+                                                )}
+                                                {log.audioUrl && (
+                                                    <div className="lg:w-1/3 p-3 bg-indigo-50 rounded-xl border border-indigo-100">
+                                                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                                            <HiOutlineMicrophone className="w-3 h-3" /> Audio Instruction
+                                                        </p>
+                                                        <audio controls src={log.audioUrl} className="w-full h-8" />
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
 
@@ -389,6 +480,7 @@ export default function SiteLogsPage() {
                                                         setMasonCount(log.masonCount);
                                                         setCoolieCount(log.coolieCount);
                                                         setHelperCount(log.helperCount);
+                                                        setOtherCount(log.otherCount);
                                                         setNotes(log.notes || '');
                                                         setMediaFiles([]);
                                                         setMediaPreviews([]);
@@ -471,7 +563,7 @@ export default function SiteLogsPage() {
                                 {/* Manpower Count */}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Manpower</label>
-                                    <div className="grid grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         {/* Mason */}
                                         <div>
                                             <p className="text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1">
@@ -514,24 +606,39 @@ export default function SiteLogsPage() {
                                                     className="w-8 h-8 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-600 flex items-center justify-center font-bold transition-colors flex-shrink-0">+</button>
                                             </div>
                                         </div>
+                                        {/* Other */}
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                                                <HiOutlineUserGroup className="w-3.5 h-3.5 text-violet-500" /> Other
+                                            </p>
+                                            <div className="flex items-center gap-1.5">
+                                                <button type="button" onClick={() => setOtherCount(Math.max(0, otherCount - 1))}
+                                                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold transition-colors flex-shrink-0">−</button>
+                                                <input type="number" min="0" value={otherCount} onChange={(e) => setOtherCount(parseInt(e.target.value) || 0)}
+                                                    className="input-field shadow-sm text-center font-bold flex-1 px-1" />
+                                                <button type="button" onClick={() => setOtherCount(otherCount + 1)}
+                                                    className="w-8 h-8 rounded-lg bg-violet-100 hover:bg-violet-200 text-violet-600 flex items-center justify-center font-bold transition-colors flex-shrink-0">+</button>
+                                            </div>
+                                        </div>
                                     </div>
                                     {/* Total */}
                                     <div className="mt-3 p-2.5 bg-emerald-50 rounded-xl border border-emerald-100 flex items-center justify-between">
                                         <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Total Workforce</span>
                                         <span className="text-xl font-extrabold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                            {masonCount + coolieCount + helperCount}
+                                            {masonCount + coolieCount + helperCount + otherCount}
                                         </span>
                                     </div>
                                 </div>
 
-                                {/* Notes */}
+                                {/* Notes & Audio Recording */}
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Notes (optional)</label>
+                                    <label className="block text-sm font-bold text-slate-700 mb-1.5">Observations / Voice Instructions</label>
                                     <SpeechTextarea
-                                        className="input-field shadow-sm min-h-[80px]"
-                                        placeholder="Any observations, issues, or progress notes..."
+                                        className="input-field shadow-sm min-h-[100px]"
+                                        placeholder="Speak or type site observations..."
                                         value={notes}
                                         onChange={setNotes}
+                                        onAudioChange={setAudioBlob}
                                     />
                                 </div>
 
@@ -562,7 +669,6 @@ export default function SiteLogsPage() {
                                         ref={fileInputRef}
                                         type="file"
                                         accept="image/*,video/*"
-                                        multiple
                                         capture="environment"
                                         onChange={handleFileSelect}
                                         className="hidden"
@@ -636,10 +742,10 @@ export default function SiteLogsPage() {
                             className="relative max-w-5xl w-full max-h-[90vh] flex items-center justify-center"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            {previewMedia.type === 'video' ? (
-                                <video src={previewMedia.url} controls autoPlay className="max-w-full max-h-[85vh] rounded-xl shadow-2xl" />
+                            {previewMedia?.type === 'video' ? (
+                                <video src={previewMedia?.url} controls autoPlay className="max-w-full max-h-[85vh] rounded-xl shadow-2xl" />
                             ) : (
-                                <img src={previewMedia.url} alt="Site media preview" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
+                                <img src={previewMedia?.url} alt="Site media preview" className="max-w-full max-h-[85vh] object-contain rounded-xl shadow-2xl" />
                             )}
                         </motion.div>
                     </div>

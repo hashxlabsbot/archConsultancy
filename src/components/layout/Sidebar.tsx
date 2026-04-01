@@ -28,21 +28,22 @@ import { useState } from 'react';
 const REGULAR_ROLES = ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER', 'NON_TECHNICAL'];
 
 const menuItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: HiOutlineHome, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
+    { path: '/dashboard', label: 'Dashboard', icon: HiOutlineHome, roles: ['ADMIN', ...REGULAR_ROLES] },
     { path: '/admin-attendance', label: 'Attendance & Reports', icon: HiOutlineClock, roles: ['ADMIN'] },
-    { path: '/attendance', label: 'Attendance', icon: HiOutlineClock, roles: [...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
+    { path: '/attendance', label: 'Attendance', icon: HiOutlineClock, roles: [...REGULAR_ROLES] },
+    // SITE_SUPERVISOR only sees this one item
     { path: '/site-logs', label: 'Daily Site Log', icon: HiOutlineWrenchScrewdriver, roles: ['ADMIN', 'SITE_SUPERVISOR', ...REGULAR_ROLES] },
     { path: '/site-visits', label: 'Field Visits', icon: HiOutlineMapPin, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/reports', label: 'Daily Reports', icon: HiOutlineDocumentText, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
-    { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
+    { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', ...REGULAR_ROLES] },
     { path: '/admin/salary', label: 'Salary Setup', icon: HiOutlineCurrencyRupee, roles: ['ADMIN'] },
     { path: '/admin/leave-balances', label: 'Leave Balances', icon: HiOutlineCalendarDays, roles: ['ADMIN'] },
     { path: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
-    { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
+    { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', ...REGULAR_ROLES] },
     { path: '/profile', label: 'My Profile', icon: HiOutlineUserCircle, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
-    { path: '/notice-board', label: 'Notice Board', icon: HiOutlineMegaphone, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
-    { path: '/employee-of-month', label: 'Employee of Month', icon: HiOutlineTrophy, roles: ['ADMIN', ...REGULAR_ROLES, 'SITE_SUPERVISOR'] },
+    { path: '/notice-board', label: 'Notice Board', icon: HiOutlineMegaphone, roles: ['ADMIN', ...REGULAR_ROLES] },
+    { path: '/employee-of-month', label: 'Employee of Month', icon: HiOutlineTrophy, roles: ['ADMIN', ...REGULAR_ROLES] },
     { path: '/admin', label: 'Settings', icon: HiOutlineCog6Tooth, roles: ['ADMIN'] },
 ];
 

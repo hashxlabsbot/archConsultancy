@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation'; // [ADD]
 import { motion } from 'framer-motion';
 import {
     HiOutlineUsers,
@@ -79,6 +80,7 @@ function DonutRing({ used, total, size = 88 }: { used: number; total: number; si
 
 export default function DashboardPage() {
     const { data: session } = useSession();
+    const router = useRouter(); // [ADD]
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [currentEOM, setCurrentEOM] = useState<any>(null);
@@ -87,10 +89,14 @@ export default function DashboardPage() {
     const firstName = session?.user?.name?.split(' ')[0] || 'there';
 
     useEffect(() => {
+        if (role === 'SITE_SUPERVISOR') {
+            router.replace('/site-logs');
+            return;
+        }
         fetchDashboard();
         fetchEOM();
         fetchNotices();
-    }, []);
+    }, [role]);
 
     const fetchDashboard = async () => {
         try {

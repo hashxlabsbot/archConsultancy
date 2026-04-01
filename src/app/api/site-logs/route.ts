@@ -16,12 +16,16 @@ export async function GET(req: NextRequest) {
         const { searchParams } = new URL(req.url);
         const dateFilter = searchParams.get('date');
         const projectId = searchParams.get('projectId');
+        const supervisorId = searchParams.get('supervisorId');
 
         const where: any = {};
 
         // Site supervisors only see their own logs
         if (role === 'SITE_SUPERVISOR') {
             where.userId = userId;
+        } else if (supervisorId) {
+            // Admin/Engineers can filter by a specific supervisor
+            where.userId = supervisorId;
         }
 
         if (dateFilter) {
@@ -40,7 +44,7 @@ export async function GET(req: NextRequest) {
         const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '25')));
         const skip = (page - 1) * limit;
 
-        const [logs, total] = await Promise.all([
+        const [logs, total, supervisors] = await Promise.all([
             prisma.dailySiteLog.findMany({
                 where,
                 include: {
@@ -52,6 +56,13 @@ export async function GET(req: NextRequest) {
                 take: limit,
             }),
             prisma.dailySiteLog.count({ where }),
+            // Fetch all site supervisors for the filter dropdown (if admin/senior/engineer)
+            role !== 'SITE_SUPERVISOR'
+                ? prisma.user.findMany({
+                    where: { role: 'SITE_SUPERVISOR' },
+                    select: { id: true, name: true }
+                })
+                : Promise.resolve([])
         ]);
 
         // Also fetch projects for the dropdown
@@ -89,6 +100,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({
             logs,
             projects,
+            supervisors,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         });
     } catch (error) {
@@ -106,10 +118,11 @@ export async function POST(req: NextRequest) {
         }
 
         const userId = (session.user as any).id;
-        const { projectId, masonCount, coolieCount, helperCount, notes, mediaUrls } = await req.json();
+        const body = await req.json();
+        const { projectId, masonCount, coolieCount, helperCount, otherCount, notes, audioUrl, mediaUrls } = body;
 
         if (!projectId) {
-            return NextResponse.json({ error: 'Project is required' }, { status: 400 });
+            return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
         }
 
         const today = new Date();
@@ -128,23 +141,16 @@ export async function POST(req: NextRequest) {
 
         let log;
         if (existing) {
-            // Merge media: add new media to existing
-            let mergedMedia: string[] = [];
-            try {
-                mergedMedia = existing.mediaUrls ? JSON.parse(existing.mediaUrls) : [];
-            } catch { }
-            if (mediaUrls && Array.isArray(mediaUrls)) {
-                mergedMedia = [...mergedMedia, ...mediaUrls];
-            }
-
             log = await prisma.dailySiteLog.update({
                 where: { id: existing.id },
                 data: {
-                    masonCount: masonCount ?? existing.masonCount,
-                    coolieCount: coolieCount ?? existing.coolieCount,
-                    helperCount: helperCount ?? existing.helperCount,
-                    notes: notes ?? existing.notes,
-                    mediaUrls: JSON.stringify(mergedMedia),
+                    masonCount: Number(masonCount) || 0,
+                    coolieCount: Number(coolieCount) || 0,
+                    helperCount: Number(helperCount) || 0,
+                    otherCount: Number(otherCount) || 0,
+                    notes: notes || existing.notes,
+                    audioUrl: audioUrl || existing.audioUrl,
+                    mediaUrls: mediaUrls ? JSON.stringify(mediaUrls) : existing.mediaUrls,
                 },
                 include: {
                     project: { select: { id: true, name: true } },
@@ -156,10 +162,12 @@ export async function POST(req: NextRequest) {
                     userId,
                     projectId,
                     date: today,
-                    masonCount: masonCount || 0,
-                    coolieCount: coolieCount || 0,
-                    helperCount: helperCount || 0,
+                    masonCount: Number(masonCount) || 0,
+                    coolieCount: Number(coolieCount) || 0,
+                    helperCount: Number(helperCount) || 0,
+                    otherCount: Number(otherCount) || 0,
                     notes: notes || '',
+                    audioUrl: audioUrl || null,
                     mediaUrls: mediaUrls ? JSON.stringify(mediaUrls) : '[]',
                 },
                 include: {
@@ -168,14 +176,53 @@ export async function POST(req: NextRequest) {
             });
         }
 
-        // Mark attendance as reportSubmitted = true for the user today
-        await prisma.attendance.updateMany({
-            where: {
-                userId,
-                date: { gte: today },
-            },
-            data: { reportSubmitted: true },
-        });
+        // Mark attendance logic for SITE_SUPERVISOR
+        const role = (session.user as any).role;
+        if (role === 'SITE_SUPERVISOR') {
+            const startOfDay = new Date(today);
+            startOfDay.setHours(0, 0, 0, 0);
+
+            const endOfDay = new Date(today);
+            endOfDay.setHours(23, 59, 59, 999);
+
+            const existingAttendance = await prisma.attendance.findFirst({
+                where: {
+                    userId,
+                    date: { gte: startOfDay, lte: endOfDay }
+                }
+            });
+
+            if (!existingAttendance) {
+                // First report of the day: Check-In
+                await prisma.attendance.create({
+                    data: {
+                        userId,
+                        date: today,
+                        checkIn: new Date(),
+                        reportSubmitted: true,
+                        address: 'Marked via Site Log'
+                    }
+                });
+            } else {
+                // Subsequent reports: Update Check-Out
+                await prisma.attendance.update({
+                    where: { id: existingAttendance.id },
+                    data: {
+                        checkOut: new Date(),
+                        reportSubmitted: true
+                    }
+                });
+            }
+        } else {
+            // Regular behavior for other roles: just mark reportSubmitted
+            await prisma.attendance.updateMany({
+                where: {
+                    userId,
+                    date: { gte: today },
+                },
+                data: { reportSubmitted: true },
+            });
+        }
 
         return NextResponse.json({ log }, { status: existing ? 200 : 201 });
     } catch (error) {
