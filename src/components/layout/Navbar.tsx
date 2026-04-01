@@ -64,7 +64,8 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
     const [passwordLoading, setPasswordLoading] = useState(false);
 
     const user = session?.user;
-    const role = (user as any)?.role || 'JUNIOR';
+    const rawRole = (user as any)?.role;
+    const role = rawRole ? String(rawRole).trim().toUpperCase() : 'JUNIOR';
 
     useEffect(() => {
         if (user && role !== 'ADMIN') {
