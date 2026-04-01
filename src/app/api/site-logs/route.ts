@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
         const limit = Math.min(50, Math.max(1, parseInt(searchParams.get('limit') || '25')));
         const skip = (page - 1) * limit;
 
-        const [logs, total, supervisors] = await Promise.all([
+        const [logs, total, supervisors, totals] = await Promise.all([
             prisma.dailySiteLog.findMany({
                 where,
                 include: {
@@ -62,7 +62,12 @@ export async function GET(req: NextRequest) {
                     where: { role: 'SITE_SUPERVISOR' },
                     select: { id: true, name: true }
                 })
-                : Promise.resolve([])
+                : Promise.resolve([]),
+            // Aggregate totals across ALL matching logs (not just current page)
+            prisma.dailySiteLog.aggregate({
+                where,
+                _sum: { masonCount: true, coolieCount: true, helperCount: true, otherCount: true },
+            }),
         ]);
 
         // Also fetch projects for the dropdown
@@ -101,6 +106,7 @@ export async function GET(req: NextRequest) {
             logs,
             projects,
             supervisors,
+            totals: totals._sum,
             pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
         });
     } catch (error) {
@@ -125,8 +131,12 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
         }
 
+        const clamp = (v: any) => Math.max(0, Math.min(9999, Number(v) || 0));
+
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
 
         // Check if a log already exists for this user + project + today → update it
         const existing = await prisma.dailySiteLog.findUnique({
@@ -144,10 +154,10 @@ export async function POST(req: NextRequest) {
             log = await prisma.dailySiteLog.update({
                 where: { id: existing.id },
                 data: {
-                    masonCount: Number(masonCount) || 0,
-                    coolieCount: Number(coolieCount) || 0,
-                    helperCount: Number(helperCount) || 0,
-                    otherCount: Number(otherCount) || 0,
+                    masonCount: clamp(masonCount),
+                    coolieCount: clamp(coolieCount),
+                    helperCount: clamp(helperCount),
+                    otherCount: clamp(otherCount),
                     notes: notes || existing.notes,
                     audioUrl: audioUrl || existing.audioUrl,
                     mediaUrls: mediaUrls ? JSON.stringify(mediaUrls) : existing.mediaUrls,
@@ -162,10 +172,10 @@ export async function POST(req: NextRequest) {
                     userId,
                     projectId,
                     date: today,
-                    masonCount: Number(masonCount) || 0,
-                    coolieCount: Number(coolieCount) || 0,
-                    helperCount: Number(helperCount) || 0,
-                    otherCount: Number(otherCount) || 0,
+                    masonCount: clamp(masonCount),
+                    coolieCount: clamp(coolieCount),
+                    helperCount: clamp(helperCount),
+                    otherCount: clamp(otherCount),
                     notes: notes || '',
                     audioUrl: audioUrl || null,
                     mediaUrls: mediaUrls ? JSON.stringify(mediaUrls) : '[]',
@@ -179,16 +189,10 @@ export async function POST(req: NextRequest) {
         // Mark attendance logic for SITE_SUPERVISOR
         const role = (session.user as any).role;
         if (role === 'SITE_SUPERVISOR') {
-            const startOfDay = new Date(today);
-            startOfDay.setHours(0, 0, 0, 0);
-
-            const endOfDay = new Date(today);
-            endOfDay.setHours(23, 59, 59, 999);
-
             const existingAttendance = await prisma.attendance.findFirst({
                 where: {
                     userId,
-                    date: { gte: startOfDay, lte: endOfDay }
+                    date: { gte: today, lt: tomorrow }
                 }
             });
 
@@ -214,11 +218,11 @@ export async function POST(req: NextRequest) {
                 });
             }
         } else {
-            // Regular behavior for other roles: just mark reportSubmitted
+            // Regular behavior for other roles: just mark reportSubmitted for today only
             await prisma.attendance.updateMany({
                 where: {
                     userId,
-                    date: { gte: today },
+                    date: { gte: today, lt: tomorrow },
                 },
                 data: { reportSubmitted: true },
             });

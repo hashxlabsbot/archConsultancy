@@ -38,7 +38,14 @@ export async function PATCH(req: NextRequest) {
         }
 
         const userId = (session.user as any).id;
-        const { id } = await req.json().catch(() => ({}));
+
+        let id: string | undefined;
+        try {
+            const body = await req.json();
+            id = typeof body?.id === 'string' ? body.id : undefined;
+        } catch {
+            // No body provided — fall through to mark-all branch
+        }
 
         if (id) {
             // Mark a single notification as read

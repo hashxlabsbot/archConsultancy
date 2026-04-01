@@ -8,6 +8,7 @@ import {
     HiOutlineStopCircle,
     HiOutlineTrash,
 } from 'react-icons/hi2';
+import toast from 'react-hot-toast';
 
 interface SpeechTextareaProps {
     value: string;
@@ -90,8 +91,12 @@ export default function SpeechTextarea({
             };
             mediaRecorderRef.current = recorder;
             recorder.start();
-        } catch {
-            // Microphone permission denied or not available — continue without recording
+        } catch (err: any) {
+            const isDenied = err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError';
+            if (isDenied) {
+                toast.error('Microphone access denied. Please allow microphone in your browser settings.');
+            }
+            // Audio recording won't work, but speech recognition may still proceed
         }
     };
 
@@ -123,7 +128,7 @@ export default function SpeechTextarea({
         const SpeechRecognition =
             (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            alert('Speech recognition is not supported in this browser. Please use Chrome or Edge.');
+            toast.error('Speech recognition is not supported. Please use Chrome or Edge.');
             return;
         }
 
@@ -161,14 +166,22 @@ export default function SpeechTextarea({
         };
 
         recognition.onerror = (e: any) => {
-            // Restart if it's a 'no-speech' error to keep it open
-            if (e.error === 'no-speech' && isListening) {
-                try { recognition.start(); } catch { }
-                return;
-            }
+            // Non-fatal: no-speech or aborted — let onend handle the restart
+            if (e.error === 'no-speech' || e.error === 'aborted') return;
+
+            // Fatal errors — stop everything and notify the user
+            isListeningRef.current = false;
             setIsListening(false);
             stopAudioRecording();
             stopTimer();
+
+            if (e.error === 'not-allowed' || e.error === 'audio-capture') {
+                toast.error('Microphone access denied. Please allow microphone in your browser settings.');
+            } else if (e.error === 'network') {
+                toast.error('Speech recognition requires an internet connection.');
+            } else if (e.error === 'service-not-allowed') {
+                toast.error('Speech recognition is not available. Try using Chrome or Edge on HTTPS.');
+            }
         };
 
         recognition.onend = () => {
@@ -178,7 +191,10 @@ export default function SpeechTextarea({
                 try {
                     recognition.start();
                     return; // Don't proceed to translation yet
-                } catch { }
+                } catch {
+                    // Restart failed — clean up properly
+                    isListeningRef.current = false;
+                }
             }
 
             stopAudioRecording();
@@ -235,6 +251,7 @@ export default function SpeechTextarea({
     const clearAudio = () => {
         if (audioUrl) URL.revokeObjectURL(audioUrl);
         setAudioUrl(null);
+        if (onAudioChange) onAudioChange(null);
     };
 
     return (

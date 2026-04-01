@@ -13,7 +13,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
         const userId = (session.user as any).id;
         const role = (session.user as any).role;
-        const { labourCount, mistriCount, notes, mediaUrls } = await req.json();
+        const { masonCount, coolieCount, helperCount, otherCount, notes, audioUrl, mediaUrls } = await req.json();
 
         const existing = await prisma.dailySiteLog.findUnique({
             where: { id: params.id },
@@ -28,10 +28,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
+        const clamp = (v: any) => Math.max(0, Math.min(9999, Number(v) || 0));
         const updateData: any = {};
-        if (labourCount !== undefined) updateData.labourCount = labourCount;
-        if (mistriCount !== undefined) updateData.mistriCount = mistriCount;
+        if (masonCount !== undefined) updateData.masonCount = clamp(masonCount);
+        if (coolieCount !== undefined) updateData.coolieCount = clamp(coolieCount);
+        if (helperCount !== undefined) updateData.helperCount = clamp(helperCount);
+        if (otherCount !== undefined) updateData.otherCount = clamp(otherCount);
         if (notes !== undefined) updateData.notes = notes;
+        if (audioUrl !== undefined) updateData.audioUrl = audioUrl;
 
         // Merge new media with existing
         if (mediaUrls && Array.isArray(mediaUrls) && mediaUrls.length > 0) {
@@ -59,7 +63,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 // DELETE /api/site-logs/[id] — Delete a site log
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
     try {
         const session = await getServerSession(authOptions);
         if (!session?.user) {

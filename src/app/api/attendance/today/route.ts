@@ -14,11 +14,13 @@ export async function GET(req: NextRequest) {
         const userId = (session.user as any).id;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
 
         const attendance = await prisma.attendance.findFirst({
             where: {
                 userId,
-                date: { gte: today },
+                date: { gte: today, lt: tomorrow },
             },
             include: {
                 reports: true,

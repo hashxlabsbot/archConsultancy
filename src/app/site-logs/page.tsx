@@ -29,10 +29,13 @@ export default function SiteLogsPage() {
     const [logs, setLogs] = useState<any[]>([]);
     const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isFetching, setIsFetching] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
+    const [editingLogId, setEditingLogId] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+    const [aggregateTotals, setAggregateTotals] = useState({ masonCount: 0, coolieCount: 0, helperCount: 0, otherCount: 0 });
 
     // Form state
     const [selectedProject, setSelectedProject] = useState('');
@@ -47,8 +50,8 @@ export default function SiteLogsPage() {
     const [uploadingMedia, setUploadingMedia] = useState(false);
     const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
 
-    // Filter state
-    const [filterDate, setFilterDate] = useState(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
+    // Filter state — empty filterDate means "all dates" (no date restriction)
+    const [filterDate, setFilterDate] = useState('');
     const [filterProjectId, setFilterProjectId] = useState('');
     const [filterSupervisorId, setFilterSupervisorId] = useState('');
     const [allSupervisors, setAllSupervisors] = useState<any[]>([]);
@@ -56,16 +59,21 @@ export default function SiteLogsPage() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
 
+    const isFirstLoad = useRef(true);
+
     useEffect(() => {
         setPage(1);
     }, [filterDate, filterProjectId, filterSupervisorId]);
 
     useEffect(() => {
-        fetchLogs(page);
+        const initial = isFirstLoad.current;
+        isFirstLoad.current = false;
+        fetchLogs(page, initial);
     }, [filterDate, filterProjectId, filterSupervisorId, page]);
 
-    const fetchLogs = async (p: number) => {
-        setLoading(true);
+    const fetchLogs = async (p: number, isInitial = false) => {
+        if (isInitial) setLoading(true);
+        else setIsFetching(true);
         try {
             const params = new URLSearchParams();
             if (filterDate) params.set('date', filterDate);
@@ -80,6 +88,12 @@ export default function SiteLogsPage() {
                 setProjects(data.projects || []);
                 setAllSupervisors(data.supervisors || []);
                 if (data.pagination) setPagination(data.pagination);
+                if (data.totals) setAggregateTotals({
+                    masonCount: data.totals.masonCount ?? 0,
+                    coolieCount: data.totals.coolieCount ?? 0,
+                    helperCount: data.totals.helperCount ?? 0,
+                    otherCount: data.totals.otherCount ?? 0,
+                });
                 if (data.projects?.length > 0 && !selectedProject) {
                     setSelectedProject(data.projects[0].id);
                 }
@@ -88,6 +102,7 @@ export default function SiteLogsPage() {
             console.error(err);
         } finally {
             setLoading(false);
+            setIsFetching(false);
         }
     };
 
@@ -117,40 +132,43 @@ export default function SiteLogsPage() {
         setMediaPreviews(prev => prev.filter((_, i) => i !== index));
     };
 
+    const resetForm = () => {
+        setEditingLogId(null);
+        setSelectedProject(projects.length > 0 ? projects[0].id : '');
+        setMasonCount(0);
+        setCoolieCount(0);
+        setHelperCount(0);
+        setOtherCount(0);
+        setNotes('');
+        setAudioBlob(null);
+        setMediaFiles([]);
+        setMediaPreviews([]);
+    };
+
     const uploadMedia = async (): Promise<string[]> => {
         if (!mediaFiles.length) return [];
-        setUploadingMedia(true);
-        try {
-            return await Promise.all(
-                mediaFiles.map(async (file) => {
-                    const fd = new FormData();
-                    fd.append('file', file);
-                    fd.append('folder', 'site-logs');
-                    const res = await fetch('/api/upload', { method: 'POST', body: fd });
-                    if (!res.ok) throw new Error('Media upload failed');
-                    const data = await res.json();
-                    return data.url as string;
-                })
-            );
-        } finally {
-            setUploadingMedia(false);
-        }
+        return Promise.all(
+            mediaFiles.map(async (file) => {
+                const fd = new FormData();
+                fd.append('file', file);
+                fd.append('folder', 'site-logs');
+                const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                if (!res.ok) throw new Error('Media upload failed');
+                const data = await res.json();
+                return data.url as string;
+            })
+        );
     };
 
     const uploadAudio = async (): Promise<string | null> => {
         if (!audioBlob) return null;
-        setUploadingMedia(true);
-        try {
-            const fd = new FormData();
-            fd.append('file', audioBlob);
-            fd.append('folder', 'site-logs/audio');
-            const res = await fetch('/api/upload', { method: 'POST', body: fd });
-            if (!res.ok) throw new Error('Audio upload failed');
-            const data = await res.json();
-            return data.url as string;
-        } finally {
-            setUploadingMedia(false);
-        }
+        const fd = new FormData();
+        fd.append('file', audioBlob);
+        fd.append('folder', 'site-logs/audio');
+        const res = await fetch('/api/upload', { method: 'POST', body: fd });
+        if (!res.ok) throw new Error('Audio upload failed');
+        const data = await res.json();
+        return data.url as string;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -160,37 +178,52 @@ export default function SiteLogsPage() {
             return;
         }
         setSubmitting(true);
+        setUploadingMedia(true);
         try {
             const [mediaUrls, audioUrlResult] = await Promise.all([
                 uploadMedia(),
                 uploadAudio()
             ]);
+            setUploadingMedia(false);
 
-            const res = await fetch('/api/site-logs', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    projectId: selectedProject,
-                    masonCount,
-                    coolieCount,
-                    helperCount,
-                    otherCount,
-                    notes,
-                    audioUrl: audioUrlResult,
-                    mediaUrls,
-                }),
-            });
+            let res: Response;
+            if (editingLogId) {
+                // Update an existing log via PATCH
+                res = await fetch(`/api/site-logs/${editingLogId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        masonCount,
+                        coolieCount,
+                        helperCount,
+                        otherCount,
+                        notes,
+                        audioUrl: audioUrlResult,
+                        mediaUrls,
+                    }),
+                });
+            } else {
+                // Create (or upsert today's) log via POST
+                res = await fetch('/api/site-logs', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        projectId: selectedProject,
+                        masonCount,
+                        coolieCount,
+                        helperCount,
+                        otherCount,
+                        notes,
+                        audioUrl: audioUrlResult,
+                        mediaUrls,
+                    }),
+                });
+            }
 
             if (res.ok) {
-                toast.success('Site log submitted successfully! 🏗️');
+                toast.success(editingLogId ? 'Site log updated!' : 'Site log submitted successfully!');
                 setShowForm(false);
-                setMasonCount(0);
-                setCoolieCount(0);
-                setHelperCount(0);
-                setOtherCount(0);
-                setNotes('');
-                setMediaFiles([]);
-                setMediaPreviews([]);
+                resetForm();
                 fetchLogs(page);
             } else {
                 const data = await res.json();
@@ -200,6 +233,7 @@ export default function SiteLogsPage() {
             toast.error('Failed to submit log');
         } finally {
             setSubmitting(false);
+            setUploadingMedia(false);
         }
     };
 
@@ -217,6 +251,8 @@ export default function SiteLogsPage() {
         );
     }
 
+    const totalManpower = aggregateTotals.masonCount + aggregateTotals.coolieCount + aggregateTotals.helperCount + aggregateTotals.otherCount;
+
     return (
         <DashboardLayout>
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-6 max-w-[1600px]">
@@ -224,24 +260,26 @@ export default function SiteLogsPage() {
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 glass-card p-4 sm:p-6">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}>
-                            {isAdmin ? 'Site Engineer Logs' : 'Daily Site Log'}
+                        <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 flex items-center gap-2" style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}>
+                            {isAdmin ? 'Site Supervisor Logs' : 'Daily Site Log'}
+                            {isFetching && <div className="w-4 h-4 border-2 border-orange-200 border-t-orange-500 rounded-full animate-spin" />}
                         </h1>
                         <p className="text-slate-500 text-sm mt-1">
-                            {isAdmin ? 'Monitor site engineer activities, labour counts, and site media.' : 'Log daily activities, upload site photos, and track on-site manpower.'}
+                            {isAdmin ? 'Monitor site supervisor activities, labour counts, and site media.' : 'Log daily activities, upload site photos, and track on-site manpower.'}
                         </p>
                     </div>
                     {canSubmit && (
-                        <button onClick={() => setShowForm(true)} className="btn-primary flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 shadow-glow-indigo text-sm">
+                        <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 shadow-glow-indigo text-sm">
                             <HiOutlinePlus className="w-4 h-4 sm:w-5 sm:h-5" /> New Entry
                         </button>
                     )}
                 </div>
 
                 {/* Filters */}
-                <div className="glass-card p-4 flex flex-wrap items-center gap-4">
+                <div className="glass-card p-4 flex flex-wrap items-center gap-3">
+                    {/* Date filter */}
                     <div className="flex items-center gap-2">
-                        <HiOutlineCalendarDays className="w-5 h-5 text-slate-400" />
+                        <HiOutlineCalendarDays className="w-5 h-5 text-slate-400 flex-shrink-0" />
                         <input
                             type="date"
                             value={filterDate}
@@ -250,7 +288,20 @@ export default function SiteLogsPage() {
                         />
                     </div>
 
-                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                    {/* Today quick-filter */}
+                    <button
+                        onClick={() => setFilterDate(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0])}
+                        className={`text-xs font-bold px-3 py-2 rounded-lg transition-colors ${
+                            filterDate === new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-orange-50 text-orange-600 hover:bg-orange-100'
+                        }`}
+                    >
+                        Today
+                    </button>
+
+                    {/* Project filter */}
+                    <div className="flex items-center gap-2 flex-1 min-w-[180px]">
                         <select
                             value={filterProjectId}
                             onChange={(e) => setFilterProjectId(e.target.value)}
@@ -263,8 +314,9 @@ export default function SiteLogsPage() {
                         </select>
                     </div>
 
+                    {/* Supervisor filter (admin/senior only) */}
                     {!isSiteSupervisor && (
-                        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                        <div className="flex items-center gap-2 flex-1 min-w-[180px]">
                             <select
                                 value={filterSupervisorId}
                                 onChange={(e) => setFilterSupervisorId(e.target.value)}
@@ -278,26 +330,30 @@ export default function SiteLogsPage() {
                         </div>
                     )}
 
-                    <button
-                        onClick={() => {
-                            setFilterDate(new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0]);
-                            setFilterProjectId('');
-                            setFilterSupervisorId('');
-                        }}
-                        className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors"
-                    >
-                        Reset
-                    </button>
+                    {/* Clear all filters */}
+                    {(filterDate || filterProjectId || filterSupervisorId) && (
+                        <button
+                            onClick={() => { setFilterDate(''); setFilterProjectId(''); setFilterSupervisorId(''); }}
+                            className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-2 rounded-lg hover:bg-slate-200 transition-colors"
+                        >
+                            Clear Filters
+                        </button>
+                    )}
+
+                    {/* Entry count */}
+                    <span className="ml-auto text-xs text-slate-400 font-medium whitespace-nowrap">
+                        {pagination.total} {pagination.total === 1 ? 'entry' : 'entries'}
+                    </span>
                 </div>
 
-                {/* Today's Summary Cards */}
-                {logs.length > 0 && (
+                {/* Summary Cards — totals across ALL matching logs, not just current page */}
+                {pagination.total > 0 && (
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card p-5 flex items-start justify-between">
                             <div>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Mason</p>
                                 <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    {logs.reduce((sum, l) => sum + (l.masonCount || 0), 0)}
+                                    {aggregateTotals.masonCount}
                                 </p>
                             </div>
                             <div className="w-11 h-11 rounded-xl bg-orange-100 flex items-center justify-center">
@@ -308,7 +364,7 @@ export default function SiteLogsPage() {
                             <div>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Coolie</p>
                                 <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    {logs.reduce((sum, l) => sum + (l.coolieCount || 0), 0)}
+                                    {aggregateTotals.coolieCount}
                                 </p>
                             </div>
                             <div className="w-11 h-11 rounded-xl bg-pink-100 flex items-center justify-center">
@@ -319,7 +375,7 @@ export default function SiteLogsPage() {
                             <div>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Helper</p>
                                 <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    {logs.reduce((sum, l) => sum + (l.helperCount || 0), 0)}
+                                    {aggregateTotals.helperCount}
                                 </p>
                             </div>
                             <div className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center">
@@ -330,7 +386,7 @@ export default function SiteLogsPage() {
                             <div>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Other</p>
                                 <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    {logs.reduce((sum, l) => sum + (l.otherCount || 0), 0)}
+                                    {aggregateTotals.otherCount}
                                 </p>
                             </div>
                             <div className="w-11 h-11 rounded-xl bg-violet-100 flex items-center justify-center">
@@ -339,9 +395,9 @@ export default function SiteLogsPage() {
                         </motion.div>
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="glass-card p-5 flex items-start justify-between">
                             <div>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Site Entries</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Workers</p>
                                 <p className="text-3xl font-extrabold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    {logs.length}
+                                    {totalManpower}
                                 </p>
                             </div>
                             <div className="w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center">
@@ -357,26 +413,67 @@ export default function SiteLogsPage() {
                         <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                             <HiOutlineWrenchScrewdriver className="w-8 h-8 text-orange-400" />
                         </div>
-                        <h3 className="text-lg font-bold text-slate-900 mb-1">No Site Logs</h3>
-                        <p className="text-slate-500 text-sm mb-4">{isAdmin ? 'No site logs for this date.' : 'Log your first site activity for today.'}</p>
-                        {!isAdmin && canSubmit && (
-                            <button onClick={() => setShowForm(true)} className="btn-primary inline-flex items-center gap-2">
-                                <HiOutlinePlus className="w-4 h-4" /> Log Now
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">No Site Logs Found</h3>
+                        <p className="text-slate-500 text-sm mb-4">
+                            {filterDate
+                                ? `No entries for ${new Date(filterDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}.`
+                                : isAdmin
+                                    ? 'No site logs have been submitted yet.'
+                                    : 'You have not submitted any site logs yet.'}
+                        </p>
+                        {canSubmit && (
+                            <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary inline-flex items-center gap-2">
+                                <HiOutlinePlus className="w-4 h-4" /> {isSiteSupervisor ? 'Log Today\'s Site' : 'New Entry'}
                             </button>
                         )}
                     </div>
                 ) : (
-                    <div className="space-y-4">
-                        {logs.map((log, idx) => {
-                            let media: string[] = [];
-                            try { media = log.mediaUrls ? JSON.parse(log.mediaUrls) : []; } catch { }
+                    <div className="space-y-6">
+                        {/* Group logs by date */}
+                        {(() => {
+                            // Build date groups
+                            const groups: { label: string; dateKey: string; items: typeof logs }[] = [];
+                            logs.forEach(log => {
+                                const d = new Date(log.date);
+                                const dateKey = d.toISOString().split('T')[0];
+                                const todayKey = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().split('T')[0];
+                                const yesterdayKey = new Date(Date.now() - new Date().getTimezoneOffset() * 60000 - 86400000).toISOString().split('T')[0];
+                                const label = dateKey === todayKey
+                                    ? 'Today'
+                                    : dateKey === yesterdayKey
+                                        ? 'Yesterday'
+                                        : d.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                                const existing = groups.find(g => g.dateKey === dateKey);
+                                if (existing) existing.items.push(log);
+                                else groups.push({ label, dateKey, items: [log] });
+                            });
 
-                            return (
+                            return groups.map((group, gIdx) => (
+                                <div key={group.dateKey}>
+                                    {/* Date group header — only shown when no date filter */}
+                                    {!filterDate && (
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-extrabold text-slate-700" style={{ fontFamily: 'Manrope, sans-serif' }}>{group.label}</span>
+                                                <span className="text-[10px] font-bold bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full">
+                                                    {group.items.length} {group.items.length === 1 ? 'entry' : 'entries'}
+                                                </span>
+                                            </div>
+                                            <div className="flex-1 h-px bg-slate-200" />
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-4">
+                                        {group.items.map((log, idx) => {
+                                            let media: string[] = [];
+                                            try { media = log.mediaUrls ? JSON.parse(log.mediaUrls) : []; } catch { }
+
+                                            return (
                                 <motion.div
                                     key={log.id}
                                     initial={{ opacity: 0, y: 12 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: idx * 0.05 }}
+                                    transition={{ delay: (gIdx * 0.05) + (idx * 0.04) }}
                                     className="glass-card overflow-hidden"
                                 >
                                     {/* Log Header */}
@@ -388,15 +485,18 @@ export default function SiteLogsPage() {
                                             <div>
                                                 <h3 className="font-bold text-slate-900 text-sm" style={{ fontFamily: 'Manrope, sans-serif' }}>
                                                     {log.project?.name}
+                                                    {log.project?.client && <span className="font-normal text-slate-400 ml-1">· {log.project.client}</span>}
                                                 </h3>
                                                 {isAdmin && (
                                                     <p className="text-xs text-slate-500">by {log.user?.name}</p>
                                                 )}
                                             </div>
                                         </div>
-                                        <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">
-                                            {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                                        </span>
+                                        {filterDate && (
+                                            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">
+                                                {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Manpower Info */}
@@ -476,12 +576,14 @@ export default function SiteLogsPage() {
                                             <div className="mt-4 pt-3 border-t border-slate-100">
                                                 <button
                                                     onClick={() => {
+                                                        setEditingLogId(log.id);
                                                         setSelectedProject(log.projectId);
                                                         setMasonCount(log.masonCount);
                                                         setCoolieCount(log.coolieCount);
                                                         setHelperCount(log.helperCount);
                                                         setOtherCount(log.otherCount);
                                                         setNotes(log.notes || '');
+                                                        setAudioBlob(null);
                                                         setMediaFiles([]);
                                                         setMediaPreviews([]);
                                                         setShowForm(true);
@@ -494,8 +596,12 @@ export default function SiteLogsPage() {
                                         )}
                                     </div>
                                 </motion.div>
-                            );
-                        })}
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ));
+                        })()}
                     </div>
                 )}
 
@@ -537,9 +643,9 @@ export default function SiteLogsPage() {
                         >
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-orange-50 to-white sticky top-0 z-10">
                                 <h3 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    📋 Daily Site Log
+                                    📋 {editingLogId ? 'Update Site Log' : 'Daily Site Log'}
                                 </h3>
-                                <button onClick={() => setShowForm(false)} className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors border border-gray-200 shadow-sm">
+                                <button onClick={() => { setShowForm(false); resetForm(); }} className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors border border-gray-200 shadow-sm">
                                     <HiOutlineXMark className="w-5 h-5" />
                                 </button>
                             </div>
@@ -704,7 +810,7 @@ export default function SiteLogsPage() {
 
                                 {/* Submit */}
                                 <div className="pt-4 border-t border-slate-100 flex gap-3 justify-end bg-slate-50/50 -mx-6 -mb-6 px-6 py-4 rounded-b-3xl">
-                                    <button type="button" onClick={() => setShowForm(false)} className="btn-secondary px-6">Cancel</button>
+                                    <button type="button" onClick={() => { setShowForm(false); resetForm(); }} className="btn-secondary px-6">Cancel</button>
                                     <button type="submit" disabled={submitting || uploadingMedia} className="btn-primary px-8 shadow-glow-indigo flex items-center gap-2">
                                         {(submitting || uploadingMedia) ? (
                                             <>
