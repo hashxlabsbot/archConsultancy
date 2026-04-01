@@ -73,8 +73,12 @@ export default function AttendancePage() {
     totalMonthlyOvertime = Math.round(totalMonthlyOvertime * 10) / 10;
 
     useEffect(() => {
+        if (role === 'SITE_SUPERVISOR') {
+            router.replace('/site-logs');
+            return;
+        }
         fetchData();
-    }, []);
+    }, [role]);
 
     const fetchData = async () => {
         try {
@@ -216,6 +220,8 @@ export default function AttendancePage() {
             setSubmittingLeave(false);
         }
     };
+
+    if (role === 'SITE_SUPERVISOR') return null;
 
     if (loading) {
         return (

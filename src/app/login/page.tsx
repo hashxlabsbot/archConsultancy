@@ -31,7 +31,17 @@ export default function LoginPage() {
                 toast.error(result.error);
             } else {
                 toast.success('Welcome back!');
-                router.push('/dashboard');
+
+                // Fetch the role to redirect properly
+                const sessionRes = await fetch('/api/auth/session');
+                const sessionData = await sessionRes.json();
+                const userRole = sessionData?.user?.role;
+
+                if (userRole === 'SITE_SUPERVISOR') {
+                    router.push('/site-logs');
+                } else {
+                    router.push('/dashboard');
+                }
                 router.refresh();
             }
         } catch (error) {

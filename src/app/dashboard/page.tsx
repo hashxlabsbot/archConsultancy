@@ -249,6 +249,8 @@ export default function DashboardPage() {
                 { href: '/site-logs', label: 'Site Logs', icon: HiOutlineWrenchScrewdriver, iconClass: 'icon-sq-orange' },
             ];
 
+    if (role === 'SITE_SUPERVISOR') return null;
+
     if (loading) {
         return (
             <DashboardLayout>
