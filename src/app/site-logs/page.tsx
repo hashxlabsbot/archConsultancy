@@ -19,6 +19,7 @@ import {
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
     HiOutlineMicrophone,
+    HiOutlineMapPin,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 
@@ -32,7 +33,6 @@ export default function SiteLogsPage() {
     const [isFetching, setIsFetching] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [editingLogId, setEditingLogId] = useState<string | null>(null);
     const [page, setPage] = useState(1);
     const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
     const [aggregateTotals, setAggregateTotals] = useState({ masonCount: 0, coolieCount: 0, helperCount: 0, otherCount: 0 });
@@ -51,6 +51,7 @@ export default function SiteLogsPage() {
     const [isSTTBusy, setIsSTTBusy] = useState(false);
     const [uploadingMedia, setUploadingMedia] = useState(false);
     const [previewMedia, setPreviewMedia] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
+    const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
 
     // Filter state — empty filterDate means "all dates" (no date restriction)
     const [filterDate, setFilterDate] = useState('');
@@ -135,7 +136,6 @@ export default function SiteLogsPage() {
     };
 
     const resetForm = () => {
-        setEditingLogId(null);
         setSelectedProject(projects.length > 0 ? projects[0].id : '');
         setMasonCount(0);
         setCoolieCount(0);
@@ -181,54 +181,66 @@ export default function SiteLogsPage() {
             toast.error('Please select a project');
             return;
         }
+
         setSubmitting(true);
         setUploadingMedia(true);
+
         try {
+            // Capture location if not already captured
+            let currentLoc = location;
+            if (!currentLoc) {
+                toast.loading('Capturing live location...', { id: 'geo' });
+                currentLoc = await new Promise((resolve) => {
+                    navigator.geolocation.getCurrentPosition(
+                        async (pos) => {
+                            const { latitude, longitude } = pos.coords;
+                            let addr = 'Location Captured';
+                            try {
+                                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                                if (geoRes.ok) {
+                                    const geoData = await geoRes.json();
+                                    addr = geoData.display_name || addr;
+                                }
+                            } catch (e) { }
+                            toast.success('Location verified', { id: 'geo' });
+                            resolve({ lat: latitude, lng: longitude, address: addr });
+                        },
+                        (err) => {
+                            toast.error('Failed to capture location. Please ensure GPS is on.', { id: 'geo' });
+                            resolve(null);
+                        },
+                        { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                });
+            }
+
             const [mediaUrls, audioUrlResult] = await Promise.all([
                 uploadMedia(),
                 uploadAudio()
             ]);
             setUploadingMedia(false);
 
-            let res: Response;
-            if (editingLogId) {
-                // Update an existing log via PATCH
-                // Only send audioUrl if a NEW one was recorded, otherwise preserve the initial one
-                const finalAudioUrl = audioBlob ? audioUrlResult : initialAudioUrl;
-
-                res = await fetch(`/api/site-logs/${editingLogId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        masonCount,
-                        coolieCount,
-                        helperCount,
-                        otherCount,
-                        notes,
-                        audioUrl: finalAudioUrl,
-                        mediaUrls,
-                    }),
-                });
-            } else {
-                // Create (or upsert today's) log via POST
-                res = await fetch('/api/site-logs', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        projectId: selectedProject,
-                        masonCount,
-                        coolieCount,
-                        helperCount,
-                        otherCount,
-                        notes,
-                        audioUrl: audioUrlResult,
-                        mediaUrls,
-                    }),
-                });
-            }
+            // Create (or upsert today's) log via POST
+            const res = await fetch('/api/site-logs', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId: selectedProject,
+                    masonCount,
+                    coolieCount,
+                    helperCount,
+                    otherCount,
+                    notes,
+                    audioUrl: audioUrlResult,
+                    mediaUrls,
+                    latitude: currentLoc?.lat,
+                    longitude: currentLoc?.lng,
+                    address: currentLoc?.address,
+                }),
+            });
 
             if (res.ok) {
-                toast.success(editingLogId ? 'Site log updated!' : 'Site log submitted successfully!');
+                toast.success('Site log submitted successfully!');
                 setShowForm(false);
                 resetForm();
                 fetchLogs(page);
@@ -236,7 +248,8 @@ export default function SiteLogsPage() {
                 const data = await res.json();
                 toast.error(data.error || 'Failed to submit');
             }
-        } catch {
+        } catch (error) {
+            console.error('Submit error:', error);
             toast.error('Failed to submit log');
         } finally {
             setSubmitting(false);
@@ -246,7 +259,7 @@ export default function SiteLogsPage() {
 
     const isAdmin = role === 'ADMIN' || role === 'SENIOR';
     const isSiteSupervisor = role === 'SITE_SUPERVISOR';
-    const canSubmit = role === 'SITE_SUPERVISOR' || role === 'SITE_ENGINEER' || role === 'ADMIN';
+    const canSubmit = role === 'SITE_SUPERVISOR' || role === 'SITE_ENGINEER';
 
     if (loading) {
         return (
@@ -583,29 +596,21 @@ export default function SiteLogsPage() {
                                                             </div>
                                                         )}
 
-                                                        {/* Update button for site engineer */}
-                                                        {canSubmit && (
-                                                            <div className="mt-4 pt-3 border-t border-slate-100">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setEditingLogId(log.id);
-                                                                        setSelectedProject(log.projectId);
-                                                                        setMasonCount(log.masonCount);
-                                                                        setCoolieCount(log.coolieCount);
-                                                                        setHelperCount(log.helperCount);
-                                                                        setOtherCount(log.otherCount);
-                                                                        setNotes(log.notes || '');
-                                                                        setInitialAudioUrl(log.audioUrl || null);
-                                                                        setAudioBlob(null);
-                                                                        setIsSTTBusy(false);
-                                                                        setMediaFiles([]);
-                                                                        setMediaPreviews([]);
-                                                                        setShowForm(true);
-                                                                    }}
-                                                                    className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1.5"
-                                                                >
-                                                                    <HiOutlineArrowPath className="w-3.5 h-3.5" /> Update Entry
-                                                                </button>
+                                                        {/* Location */}
+                                                        {log.address && (
+                                                            <div className="mt-4 pt-3 border-t border-slate-100 flex items-start gap-2">
+                                                                <HiOutlineMapPin className="w-4 h-4 text-slate-400 mt-0.5" />
+                                                                <div>
+                                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Verified Location</p>
+                                                                    <a
+                                                                        href={`https://www.google.com/maps/search/?api=1&query=${log.latitude},${log.longitude}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-[11px] text-indigo-600 hover:underline line-clamp-1"
+                                                                    >
+                                                                        {log.address}
+                                                                    </a>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
@@ -657,7 +662,7 @@ export default function SiteLogsPage() {
                         >
                             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-orange-50 to-white sticky top-0 z-10">
                                 <h3 className="text-xl font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                                    📋 {editingLogId ? 'Update Site Log' : 'Daily Site Log'}
+                                    📋 Daily Site Log
                                 </h3>
                                 <button onClick={() => { setShowForm(false); resetForm(); }} className="p-2 text-slate-400 hover:text-slate-700 bg-white hover:bg-slate-100 rounded-xl transition-colors border border-gray-200 shadow-sm">
                                     <HiOutlineXMark className="w-5 h-5" />

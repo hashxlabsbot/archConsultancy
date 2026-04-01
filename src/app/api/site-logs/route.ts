@@ -125,7 +125,7 @@ export async function POST(req: NextRequest) {
 
         const userId = (session.user as any).id;
         const body = await req.json();
-        const { projectId, masonCount, coolieCount, helperCount, otherCount, notes, audioUrl, mediaUrls } = body;
+        const { projectId, masonCount, coolieCount, helperCount, otherCount, notes, audioUrl, mediaUrls, latitude, longitude, address } = body;
 
         if (!projectId) {
             return NextResponse.json({ error: 'Project ID is required' }, { status: 400 });
@@ -161,6 +161,9 @@ export async function POST(req: NextRequest) {
                     notes: notes || existing.notes,
                     audioUrl: audioUrl || existing.audioUrl,
                     mediaUrls: mediaUrls ? JSON.stringify(mediaUrls) : existing.mediaUrls,
+                    latitude: latitude !== undefined ? latitude : existing.latitude,
+                    longitude: longitude !== undefined ? longitude : existing.longitude,
+                    address: address || existing.address,
                 },
                 include: {
                     project: { select: { id: true, name: true } },
@@ -179,6 +182,9 @@ export async function POST(req: NextRequest) {
                     notes: notes || '',
                     audioUrl: audioUrl || null,
                     mediaUrls: mediaUrls ? JSON.stringify(mediaUrls) : '[]',
+                    latitude,
+                    longitude,
+                    address,
                 },
                 include: {
                     project: { select: { id: true, name: true } },
