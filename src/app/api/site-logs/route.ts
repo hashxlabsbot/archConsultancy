@@ -214,7 +214,9 @@ export async function POST(req: NextRequest) {
                         date: today,
                         checkIn: new Date(),
                         reportSubmitted: true,
-                        address: 'Marked via Site Log'
+                        latitude,
+                        longitude,
+                        address: address || 'Marked via Site Log'
                     }
                 });
             } else {
@@ -223,6 +225,9 @@ export async function POST(req: NextRequest) {
                     where: { id: existingAttendance.id },
                     data: {
                         checkOut: new Date(),
+                        checkOutLatitude: latitude,
+                        checkOutLongitude: longitude,
+                        checkOutAddress: address || 'Marked via Site Log',
                         reportSubmitted: true
                     }
                 });
