@@ -259,7 +259,7 @@ export default function SiteLogsPage() {
 
     const isAdmin = role === 'ADMIN' || role === 'SENIOR';
     const isSiteSupervisor = role === 'SITE_SUPERVISOR';
-    const canSubmit = role === 'SITE_SUPERVISOR' || role === 'SITE_ENGINEER';
+    const canSubmit = role === 'SITE_SUPERVISOR';
 
     if (loading) {
         return (

@@ -124,6 +124,11 @@ export async function POST(req: NextRequest) {
         }
 
         const userId = (session.user as any).id;
+        const role = (session.user as any).role;
+        if (role !== 'SITE_SUPERVISOR') {
+            return NextResponse.json({ error: 'Only Site Supervisors can submit daily logs' }, { status: 403 });
+        }
+
         const body = await req.json();
         const { projectId, masonCount, coolieCount, helperCount, otherCount, notes, audioUrl, mediaUrls, latitude, longitude, address } = body;
 
