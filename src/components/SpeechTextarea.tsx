@@ -58,6 +58,13 @@ export default function SpeechTextarea({
     const timerRef = useRef<any>(null);
     const restartTimerRef = useRef<any>(null);
     const prevBusyRef = useRef(false);
+    const valueRef = useRef(value);
+    valueRef.current = value;
+
+    // Sync finalRef when not listening to handle manual edits
+    if (!isListening) {
+        finalRef.current = value;
+    }
 
     // ── Notify parent of busy state ──────────────────────────────────────────
     const currBusy = isListening || isTranslating;
@@ -209,7 +216,9 @@ export default function SpeechTextarea({
             }
             // Still listening — start a new instance after a short delay
             // (delay prevents rapid-fire restart loops on some Chrome versions)
-            restartTimerRef.current = setTimeout(startRecognitionSession, 80);
+            if (isListeningRef.current) {
+                restartTimerRef.current = setTimeout(startRecognitionSession, 150);
+            }
         };
 
         recognitionRef.current = recognition;

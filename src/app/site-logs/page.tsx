@@ -616,7 +616,12 @@ export default function SiteLogsPage() {
                                                                         <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-1.5 flex items-center gap-1">
                                                                             <HiOutlineMicrophone className="w-3 h-3" /> Audio Instruction
                                                                         </p>
-                                                                        <audio controls src={log.audioUrl} className="w-full h-8" />
+                                                                        {/* Use the /api/blob proxy for range/seek support and cross-device stability */}
+                                                                        <audio
+                                                                            controls
+                                                                            src={log.audioUrl.startsWith('http') ? `/api/blob?url=${encodeURIComponent(log.audioUrl)}` : log.audioUrl}
+                                                                            className="w-full h-8"
+                                                                        />
                                                                     </div>
                                                                 )}
                                                             </div>
