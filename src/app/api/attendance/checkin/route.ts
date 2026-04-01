@@ -11,6 +11,11 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        const role = (session.user as any).role;
+        if (role === 'SITE_SUPERVISOR') {
+            return NextResponse.json({ error: 'Site Supervisors must mark attendance via Site Logs' }, { status: 403 });
+        }
+
         const userId = (session.user as any).id;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
