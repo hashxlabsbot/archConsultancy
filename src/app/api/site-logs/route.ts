@@ -198,7 +198,6 @@ export async function POST(req: NextRequest) {
         }
 
         // Mark attendance logic for SITE_SUPERVISOR
-        const role = (session.user as any).role;
         if (role === 'SITE_SUPERVISOR') {
             const existingAttendance = await prisma.attendance.findFirst({
                 where: {
