@@ -34,11 +34,11 @@ const menuItems = [
     // SITE_SUPERVISOR only sees this one item
     { path: '/site-logs', label: 'Daily Site Log', icon: HiOutlineWrenchScrewdriver, roles: ['ADMIN', 'SITE_SUPERVISOR', ...REGULAR_ROLES] },
     { path: '/site-visits', label: 'Project Site Visits', icon: HiOutlineMapPin, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
-    { path: '/reports', label: 'Daily Reports', icon: HiOutlineDocumentText, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
+    { path: '/reports', label: 'Daily Reports', icon: HiOutlineDocumentText, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', ...REGULAR_ROLES] },
     { path: '/admin/salary', label: 'Salary Setup', icon: HiOutlineCurrencyRupee, roles: ['ADMIN'] },
     { path: '/admin/leave-balances', label: 'Leave Balances', icon: HiOutlineCalendarDays, roles: ['ADMIN'] },
-    { path: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
+    { path: '/salary', label: 'My Salary', icon: HiOutlineBanknotes, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/employees', label: 'Employees', icon: HiOutlineUsers, roles: ['ADMIN', ...REGULAR_ROLES] },
     { path: '/profile', label: 'My Profile', icon: HiOutlineUserCircle, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/projects', label: 'Projects', icon: HiOutlineFolderOpen, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
