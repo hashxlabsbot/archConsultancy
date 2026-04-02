@@ -40,3 +40,33 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+
+// PATCH /api/profile/me — Update the logged-in user's profile
+export async function PATCH(req: NextRequest) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const body = await req.json();
+        const { avatar } = body;
+
+        const updatedUser = await prisma.user.update({
+            where: { id: (session.user as any).id },
+            data: { avatar },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                avatar: true,
+            }
+        });
+
+        return NextResponse.json({ user: updatedUser });
+    } catch (error) {
+        console.error('Profile PATCH error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}

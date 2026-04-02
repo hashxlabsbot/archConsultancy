@@ -1,12 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import {
     HiOutlineUserCircle, HiOutlineEnvelope, HiOutlinePhone, HiOutlineIdentification,
     HiOutlineCalendarDays, HiOutlineBriefcase, HiOutlineAcademicCap, HiOutlineShieldCheck,
+    HiOutlineCamera,
 } from 'react-icons/hi2';
+import toast from 'react-hot-toast';
 
 function Field({ label, value, icon: Icon }: { label: string; value?: string | null; icon?: any }) {
     return (
@@ -23,6 +25,8 @@ function Field({ label, value, icon: Icon }: { label: string; value?: string | n
 export default function ProfilePage() {
     const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetch('/api/profile/me')
@@ -30,6 +34,47 @@ export default function ProfilePage() {
             .then(d => { if (d.user) setUser(d.user); })
             .finally(() => setLoading(false));
     }, []);
+
+    const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Image must be less than 5MB');
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const uploadRes = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData,
+            });
+
+            if (!uploadRes.ok) throw new Error('Upload failed');
+            const { url } = await uploadRes.json();
+
+            const updateRes = await fetch('/api/profile/me', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ avatar: url }),
+            });
+
+            if (updateRes.ok) {
+                setUser({ ...user, avatar: url });
+                toast.success('Profile picture updated');
+            } else {
+                throw new Error('Update failed');
+            }
+        } catch (err) {
+            toast.error('Failed to update profile picture');
+        } finally {
+            setUploading(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -64,8 +109,32 @@ export default function ProfilePage() {
                 {/* Identity Card */}
                 <div className="glass-card overflow-hidden">
                     <div className="bg-gradient-to-r from-primary-600 to-primary-800 p-8 flex items-center gap-6">
-                        <div className="w-20 h-20 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold text-white border-2 border-white/30 shadow-lg">
-                            {initials}
+                        <div
+                            className="relative group w-24 h-24 flex-shrink-0 cursor-pointer"
+                            onClick={() => !uploading && fileInputRef.current?.click()}
+                        >
+                            <div className="w-full h-full rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold text-white border-2 border-white/30 shadow-lg overflow-hidden">
+                                {user.avatar ? (
+                                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    initials
+                                )}
+                                {uploading && (
+                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                        <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                )}
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <HiOutlineCamera className="w-8 h-8 text-white" />
+                                </div>
+                            </div>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleAvatarUpload}
+                            />
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold text-white">{user.name}</h2>

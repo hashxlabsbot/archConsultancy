@@ -70,8 +70,12 @@ export default function EmployeesPage() {
                             className="glass-card-hover p-5"
                         >
                             <div className="flex items-start gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-slate-900 font-bold flex-shrink-0">
-                                    {getInitials(user.name)}
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden shadow-sm">
+                                    {user.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        getInitials(user.name)
+                                    )}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <h3 className="text-slate-900 font-medium truncate">{user.name}</h3>

@@ -251,10 +251,16 @@ export default function KanbanBoard({ projectId, members, onPreview }: { project
                                 )}
 
                                 {m.assignee && (
-                                    <div className="mt-2 pt-2 border-t border-slate-100 flex flex-col gap-1">
-                                        <div className="flex items-center justify-between text-[10px] text-slate-500">
-                                            <span className="font-medium">Assignee</span>
-                                            <span className="font-semibold text-slate-700 truncate max-w-[80px]">{m.assignee.name}</span>
+                                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-5 h-5 rounded-md bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-500 overflow-hidden flex-shrink-0">
+                                                {m.assignee.avatar ? (
+                                                    <img src={m.assignee.avatar} alt={m.assignee.name} className="w-full h-full object-cover" />
+                                                ) : (
+                                                    getInitials(m.assignee.name)
+                                                )}
+                                            </div>
+                                            <span className="text-[10px] font-semibold text-slate-700 truncate max-w-[100px]">{m.assignee.name}</span>
                                         </div>
                                     </div>
                                 )}
@@ -313,7 +319,18 @@ export default function KanbanBoard({ projectId, members, onPreview }: { project
                                                 <HiOutlineCalendar className="w-3.5 h-3.5" /> {formatDate(selectedCard.dueDate)}
                                             </span>
                                         )}
-                                        {selectedCard.assignee && <span>Assignee: <strong>{selectedCard.assignee.name}</strong></span>}
+                                        {selectedCard.assignee && (
+                                            <span className="flex items-center gap-2">
+                                                <div className="w-5 h-5 rounded-md bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-500 overflow-hidden flex-shrink-0">
+                                                    {selectedCard.assignee.avatar ? (
+                                                        <img src={selectedCard.assignee.avatar} alt={selectedCard.assignee.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        getInitials(selectedCard.assignee.name)
+                                                    )}
+                                                </div>
+                                                Assignee: <strong>{selectedCard.assignee.name}</strong>
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <button onClick={() => setSelectedCard(null)} className="text-slate-400 hover:text-slate-700 flex-shrink-0">

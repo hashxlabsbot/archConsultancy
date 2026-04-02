@@ -60,6 +60,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
     const rawRole = (session?.user as any)?.role;
     const userRole = rawRole ? String(rawRole).trim().toUpperCase() : 'JUNIOR';
     const userName = session?.user?.name || 'User';
+    const userAvatar = (session?.user as any)?.avatar;
     const initials = userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
     // If role doesn't match any item (unknown/custom role), fall back to JUNIOR items so menu is never blank
@@ -144,9 +145,13 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
             {!collapsed && (
                 <div className="relative z-10 p-3 border-t border-slate-100 bg-white/50 backdrop-blur-sm">
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
-                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden"
                             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                            {initials}
+                            {userAvatar ? (
+                                <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
+                            ) : (
+                                initials
+                            )}
                         </div>
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-slate-900 truncate" style={{ fontFamily: 'Manrope, sans-serif' }}>{userName}</p>
