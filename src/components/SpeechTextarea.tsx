@@ -127,21 +127,41 @@ export default function SpeechTextarea({
         if (!text.trim()) return text;
         try {
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 5000);
+            const timeout = setTimeout(() => controller.abort(), 8000); // Increased timeout
+
+            // Primary: MyMemory (more generous free tier)
             const res = await fetch(
                 `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.trim())}&langpair=hi|en`,
                 { signal: controller.signal }
-            );
+            ).catch(() => null);
+
+            let translated = null;
+            if (res && res.ok) {
+                const data = await res.json();
+                translated = data.responseData?.translatedText;
+            }
+
+            // Fallback: Google Translate (undocumented free endpoint used by many open source tools)
+            if (!translated || translated === text.trim() || translated === 'PLEASE SELECT TWO DISTINCT LANGUAGES') {
+                const gRes = await fetch(
+                    `https://translate.googleapis.com/translate_a/single?client=gtx&sl=hi&tl=en&dt=t&q=${encodeURIComponent(text.trim())}`,
+                    { signal: controller.signal }
+                ).catch(() => null);
+
+                if (gRes && gRes.ok) {
+                    const gData = await gRes.json();
+                    translated = gData?.[0]?.[0]?.[0];
+                }
+            }
+
             clearTimeout(timeout);
-            const data = await res.json();
-            const translated = data.responseData?.translatedText;
-            // Return translated text only if it's different and looks like English
-            if (translated && translated !== text.trim() && translated !== 'PLEASE SELECT TWO DISTINCT LANGUAGES') {
+
+            if (translated && translated !== text.trim()) {
                 return translated;
             }
             return text;
-        } catch {
-            // Timeout or network error — return original Hindi text
+        } catch (err) {
+            console.error('Translation error:', err);
             return text;
         }
     };
@@ -156,6 +176,7 @@ export default function SpeechTextarea({
         const recognition = new SpeechRecognition();
         recognition.continuous = false;       // single utterance — restart in onend
         recognition.interimResults = true;
+        // Try 'hi-IN' but fallback to 'hi' if needed in some browsers
         recognition.lang = isHindiRef.current ? 'hi-IN' : 'en-US';
         recognition.maxAlternatives = 1;
 

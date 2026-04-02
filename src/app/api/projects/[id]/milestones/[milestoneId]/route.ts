@@ -10,7 +10,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (!session?.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
-        const { title, description, status, sequence, dueDate, assigneeId, reviewerId } = body;
+        console.log('[Milestone PATCH] body:', body);
+        console.log('[Milestone PATCH] params:', params);
+
+        const { title, description, status, sequence, dueDate, assigneeId, reviewerId, deliverableUrl, deliverableType, deliverableName } = body;
 
         const data: any = {};
         if (title !== undefined) data.title = title;
@@ -20,6 +23,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         if (dueDate !== undefined) data.dueDate = dueDate ? new Date(dueDate) : null;
         if (assigneeId !== undefined) data.assigneeId = assigneeId || null;
         if (reviewerId !== undefined) data.reviewerId = reviewerId || null;
+        if (deliverableUrl !== undefined) data.deliverableUrl = deliverableUrl || null;
+        if (deliverableType !== undefined) data.deliverableType = deliverableType || null;
+        if (deliverableName !== undefined) data.deliverableName = deliverableName || null;
+
+        console.log('[Milestone PATCH] updating data:', data);
 
         const milestone = await prisma.milestone.update({
             where: { id: params.milestoneId },
@@ -30,10 +38,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             }
         });
 
+        console.log('[Milestone PATCH] success');
         return NextResponse.json({ success: true, milestone });
-    } catch (e) {
-        console.error(e);
-        return NextResponse.json({ error: 'Failed to update milestone' }, { status: 500 });
+    } catch (e: any) {
+        console.error('[Milestone PATCH] error:', e);
+        return NextResponse.json({ error: e.message || 'Failed to update milestone' }, { status: 500 });
     }
 }
 

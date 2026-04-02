@@ -36,6 +36,9 @@ export default function ProjectDetailPage() {
     const [loadingEligibleUsers, setLoadingEligibleUsers] = useState(false);
     const [addingMember, setAddingMember] = useState(false);
     const [previewDoc, setPreviewDoc] = useState<any>(null);
+    const [showChangePMModal, setShowChangePMModal] = useState(false);
+    const [allUsers, setAllUsers] = useState<any[]>([]);
+    const [changingPM, setChangingPM] = useState(false);
 
     useEffect(() => { if (id) fetchProject(); }, [id]);
 
@@ -78,6 +81,41 @@ export default function ProjectDetailPage() {
             }
         } catch (err) { toast.error('Error adding member'); }
         finally { setAddingMember(false); }
+    };
+
+    const fetchAllUsers = async () => {
+        try {
+            const res = await fetch('/api/admin/users');
+            if (res.ok) {
+                const data = await res.json();
+                setAllUsers(data.users || []);
+            } else {
+                // Fallback: use eligible + current members
+                setAllUsers([
+                    ...(project?.members?.map((m: any) => m.user) || []),
+                    ...eligibleUsers,
+                ]);
+            }
+        } catch { }
+    };
+
+    const handleChangeProjectManager = async (newPmId: string) => {
+        setChangingPM(true);
+        try {
+            const res = await fetch(`/api/projects/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectManagerId: newPmId }),
+            });
+            if (res.ok) {
+                toast.success('Project Manager updated');
+                fetchProject();
+                setShowChangePMModal(false);
+            } else {
+                toast.error('Failed to update Project Manager');
+            }
+        } catch { toast.error('Error updating Project Manager'); }
+        finally { setChangingPM(false); }
     };
 
     const handleRemoveMember = async (userId: string) => {
@@ -198,7 +236,17 @@ export default function ProjectDetailPage() {
                     {project.description && <p className="text-slate-500 text-sm mb-4">{project.description}</p>}
                     <div className="flex flex-wrap gap-4 text-sm text-slate-500">
                         <span>📅 {formatDate(project.startDate)}{project.endDate ? ` — ${formatDate(project.endDate)}` : ''}</span>
-                        <span>👤 Owner: {project.owner?.name}</span>
+                        <span className="flex items-center gap-1">
+                            👤 PM: <strong>{(project.projectManager || project.owner)?.name}</strong>
+                            {(role === 'ADMIN' || role === 'SENIOR') && (
+                                <button
+                                    onClick={() => { setShowChangePMModal(true); fetchAllUsers(); fetchEligibleUsers(); }}
+                                    className="ml-1 text-xs text-primary-500 hover:text-primary-700 underline underline-offset-2"
+                                >
+                                    change
+                                </button>
+                            )}
+                        </span>
                         {project.location && (
                             <span className="flex items-center gap-1">
                                 📍 {project.location}
@@ -230,25 +278,47 @@ export default function ProjectDetailPage() {
                                 <HiOutlinePlus className="w-3 h-3" /> Add
                             </button>
                         </h3>
-                        <div className="space-y-3">
-                            {project.members?.map((member: any) => (
-                                <div key={member.id} className="flex items-center justify-between group">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center text-xs text-primary-300 font-bold">
-                                            {getInitials(member.user.name)}
-                                        </div>
-                                        <div>
-                                            <p className="text-sm text-slate-900">{member.user.name}</p>
-                                            <p className="text-xs text-slate-500">{member.role}</p>
-                                        </div>
+                        {/* Project Manager row */}
+                        {(() => {
+                            const pm = project.projectManager || project.owner;
+                            return pm ? (
+                                <div className="flex items-center gap-3 pb-3 mb-3 border-b border-slate-100">
+                                    <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-xs text-indigo-600 font-bold">
+                                        {getInitials(pm.name)}
                                     </div>
-                                    {member.user.id !== project.ownerId && (
-                                        <button onClick={() => handleRemoveMember(member.user.id)} className="text-slate-300 hover:text-danger-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
-                                            <HiOutlineTrash className="w-4 h-4" />
-                                        </button>
-                                    )}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-slate-900">{pm.name}</p>
+                                        <p className="text-xs text-indigo-500 font-medium">Project Manager</p>
+                                    </div>
                                 </div>
-                            ))}
+                            ) : null;
+                        })()}
+                        <div className="space-y-3">
+                            {project.members?.map((member: any) => {
+                                const isPrincipalArchitect = member.user.designation === 'Principal Architect';
+                                const isPM = member.user.id === (project.projectManager?.id || project.ownerId);
+                                const displayRole = isPrincipalArchitect ? 'Principal Architect' : (member.user.designation || member.role);
+                                return (
+                                    <div key={member.id} className="flex items-center justify-between group">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold ${isPrincipalArchitect ? 'bg-amber-100 text-amber-700' : 'bg-primary-500/20 text-primary-300'}`}>
+                                                {getInitials(member.user.name)}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm text-slate-900">{member.user.name}</p>
+                                                <p className={`text-xs font-medium ${isPrincipalArchitect ? 'text-amber-600' : 'text-slate-500'}`}>
+                                                    {displayRole}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {!isPrincipalArchitect && !isPM && (role === 'ADMIN' || role === 'SENIOR') && (
+                                            <button onClick={() => handleRemoveMember(member.user.id)} className="text-slate-300 hover:text-danger-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                                                <HiOutlineTrash className="w-4 h-4" />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
                             {(!project.members || project.members.length === 0) && <p className="text-slate-500 text-sm">No team members yet</p>}
                         </div>
                     </div>
@@ -319,10 +389,22 @@ export default function ProjectDetailPage() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                            <button onClick={() => setPreviewDoc(doc)} className="p-2 text-slate-500 hover:text-indigo-600 transition-colors" title="Preview File">
+                                            <button
+                                                onClick={() => setPreviewDoc({
+                                                    ...doc,
+                                                    storagePath: `/api/blob?url=${encodeURIComponent(doc.storagePath)}`
+                                                })}
+                                                className="p-2 text-slate-500 hover:text-indigo-600 transition-colors"
+                                                title="Preview File"
+                                            >
                                                 <HiOutlineEye className="w-5 h-5" />
                                             </button>
-                                            <a href={doc.storagePath} download className="p-2 text-slate-500 hover:text-primary-400 transition-colors" title="Download File">
+                                            <a
+                                                href={`/api/blob?url=${encodeURIComponent(doc.storagePath)}`}
+                                                download={doc.filename}
+                                                className="p-2 text-slate-500 hover:text-primary-400 transition-colors"
+                                                title="Download File"
+                                            >
                                                 <HiOutlineArrowDownTray className="w-5 h-5" />
                                             </a>
                                         </div>
@@ -338,7 +420,11 @@ export default function ProjectDetailPage() {
 
                 {/* Milestone Kanban Board */}
                 <div className="glass-card p-6 mt-6">
-                    <KanbanBoard projectId={id} members={project.members || []} />
+                    <KanbanBoard
+                        projectId={id}
+                        members={project.members || []}
+                        onPreview={setPreviewDoc}
+                    />
                 </div>
 
                 {/* Add Member Modal */}
@@ -363,7 +449,7 @@ export default function ProjectDetailPage() {
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-medium text-slate-900">{user.name}</p>
-                                                    <p className="text-xs text-slate-500">{user.email}</p>
+                                                    <p className="text-xs text-slate-500">{user.designation || user.role}</p>
                                                 </div>
                                             </div>
                                             <button onClick={() => handleAddMember(user.id)} disabled={addingMember} className="btn-secondary text-xs py-1 px-3">
@@ -376,6 +462,43 @@ export default function ProjectDetailPage() {
                         </motion.div>
                     </div>
                 )}
+                {/* Change PM Modal */}
+                {showChangePMModal && (
+                    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+                            <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-slate-50 font-bold text-slate-900">
+                                Change Project Manager
+                                <button onClick={() => setShowChangePMModal(false)}><HiXMark className="w-5 h-5 text-slate-400" /></button>
+                            </div>
+                            <div className="p-4 max-h-[60vh] overflow-y-auto space-y-2">
+                                {[...(project?.members?.map((m: any) => m.user) || []), ...(allUsers.filter((u: any) => !project?.members?.find((m: any) => m.user.id === u.id)))].map((user: any) => {
+                                    const isCurrentPM = user.id === (project?.projectManager?.id || project?.ownerId);
+                                    return (
+                                        <div key={user.id} className={`flex items-center justify-between p-2 rounded-lg border transition-colors ${isCurrentPM ? 'border-indigo-200 bg-indigo-50' : 'border-transparent hover:border-slate-100 hover:bg-slate-50'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-primary-500/20 flex items-center justify-center text-xs text-primary-500 font-bold">
+                                                    {getInitials(user.name)}
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-medium text-slate-900">{user.name}</p>
+                                                    <p className="text-xs text-slate-500">{user.designation || user.role}</p>
+                                                </div>
+                                            </div>
+                                            {isCurrentPM ? (
+                                                <span className="text-xs font-bold text-indigo-600 bg-indigo-100 px-2 py-1 rounded-md">Current PM</span>
+                                            ) : (
+                                                <button onClick={() => handleChangeProjectManager(user.id)} disabled={changingPM} className="btn-primary text-xs py-1 px-3">
+                                                    Set as PM
+                                                </button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+
                 {/* Document Preview Modal */}
                 {previewDoc && (
                     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">

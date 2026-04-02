@@ -31,6 +31,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
                 name: true,
                 email: true,
                 role: true,
+                designation: true,
                 avatar: true,
                 skills: true,
             }
@@ -66,7 +67,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
         const userRole = (session.user as any).role;
         const _userId = (session.user as any).id;
-        if (userRole !== 'ADMIN' && userRole !== 'SENIOR' && project.ownerId !== _userId) {
+        const isManager = project.ownerId === _userId || project.projectManagerId === _userId;
+        if (userRole !== 'ADMIN' && userRole !== 'SENIOR' && !isManager) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 

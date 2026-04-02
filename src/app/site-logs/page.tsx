@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import SpeechTextarea from '@/components/SpeechTextarea';
+import LabourReportDocument, { LabourLogEntry, LABOUR_REPORT_STYLES } from '@/components/site-logs/LabourReportDocument';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     HiOutlineWrenchScrewdriver,
@@ -14,7 +15,6 @@ import {
     HiOutlineDocumentText,
     HiOutlineCalendarDays,
     HiOutlinePhoto,
-
     HiOutlineArrowPath,
     HiOutlineChevronLeft,
     HiOutlineChevronRight,
@@ -22,6 +22,8 @@ import {
     HiOutlineMapPin,
     HiOutlineCheckCircle,
     HiOutlineClock,
+    HiOutlineArrowDownTray,
+    HiOutlinePrinter,
 } from 'react-icons/hi2';
 import toast from 'react-hot-toast';
 import { formatTime } from '@/lib/utils';
@@ -62,6 +64,28 @@ export default function SiteLogsPage() {
     const [filterSupervisorId, setFilterSupervisorId] = useState('');
     const [allSupervisors, setAllSupervisors] = useState<any[]>([]);
     const [todayAttendance, setTodayAttendance] = useState<any>(null);
+
+    // Download / export state
+    const [showExportPanel, setShowExportPanel] = useState(false);
+    const [exportMode, setExportMode] = useState<'monthly' | 'custom'>('monthly');
+    const currentDate = new Date();
+    const [exportMonth, setExportMonth] = useState(
+        `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
+    );
+    const [exportStartDate, setExportStartDate] = useState('');
+    const [exportEndDate, setExportEndDate] = useState('');
+    const [exportProjectId, setExportProjectId] = useState('');
+    const [exportSupervisorId, setExportSupervisorId] = useState('');
+    const [exporting, setExporting] = useState(false);
+
+    // PDF preview state
+    const [reportData, setReportData] = useState<{
+        logs: LabourLogEntry[];
+        periodLabel: string;
+        projectName: string | null;
+        supervisorName: string | null;
+    } | null>(null);
+    const [showReportPreview, setShowReportPreview] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const galleryInputRef = useRef<HTMLInputElement>(null);
@@ -274,6 +298,74 @@ export default function SiteLogsPage() {
         }
     };
 
+    const handleGenerateReport = async () => {
+        if (exportMode === 'custom' && (!exportStartDate || !exportEndDate)) {
+            toast.error('Please select both start and end dates');
+            return;
+        }
+        setExporting(true);
+        try {
+            const params = new URLSearchParams();
+            if (exportMode === 'monthly') {
+                params.set('month', exportMonth);
+            } else {
+                params.set('startDate', exportStartDate);
+                params.set('endDate', exportEndDate);
+            }
+            if (exportProjectId) params.set('projectId', exportProjectId);
+            if (exportSupervisorId) params.set('supervisorId', exportSupervisorId);
+
+            const res = await fetch(`/api/site-logs/export?${params.toString()}`);
+            if (!res.ok) { toast.error('Failed to load report data'); return; }
+            const data = await res.json();
+            setReportData(data);
+            setShowReportPreview(true);
+            setShowExportPanel(false);
+        } catch {
+            toast.error('Failed to generate report');
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handlePrintReport = () => {
+        const el = document.getElementById('labour-report-document');
+        if (!el) return;
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) { toast.error('Pop-up blocked — please allow pop-ups and try again'); return; }
+
+        // Replace relative /logo.png with an absolute URL so it loads in about:blank
+        const absoluteLogoUrl = `${window.location.origin}/logo.png`;
+        // Strip the embedded <style> from outerHTML — CSS is already in <head> below
+        const bodyHtml = el.outerHTML
+            .replace(/<style[\s\S]*?<\/style>/i, '')
+            .replace(/src="\/logo\.png"/g, `src="${absoluteLogoUrl}"`);
+
+        printWindow.document.write(`<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Labour Manpower Report — ${reportData?.periodLabel ?? ''}</title>
+    <style>${LABOUR_REPORT_STYLES}</style>
+    <style>
+        body {
+            margin: 0;
+            padding: 8px;
+            font-family: 'Times New Roman', serif;
+            background: #fff;
+        }
+    </style>
+</head>
+<body>${bodyHtml}</body>
+</html>`);
+        printWindow.document.close();
+        printWindow.focus();
+        // Wait for images to load before printing
+        printWindow.onload = () => { printWindow.print(); };
+        // Fallback if onload doesn't fire (already loaded)
+        setTimeout(() => { try { printWindow.print(); } catch (_) { } }, 900);
+    };
+
     const isAdmin = role === 'ADMIN' || role === 'SENIOR';
     const isSiteSupervisor = role === 'SITE_SUPERVISOR';
     const canSubmit = role === 'SITE_SUPERVISOR';
@@ -307,12 +399,184 @@ export default function SiteLogsPage() {
                                 : 'Showing your own submitted logs only.'}
                         </p>
                     </div>
-                    {canSubmit && (
-                        <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 shadow-glow-indigo text-sm">
-                            <HiOutlinePlus className="w-4 h-4 sm:w-5 sm:h-5" /> New Entry
-                        </button>
-                    )}
+                    <div className="flex items-center gap-2">
+                        {!isSiteSupervisor && (
+                            <button
+                                onClick={() => setShowExportPanel(v => !v)}
+                                className="flex items-center gap-2 px-4 py-2.5 text-sm font-bold rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200"
+                            >
+                                <HiOutlineArrowDownTray className="w-4 h-4" /> Download
+                            </button>
+                        )}
+                        {canSubmit && (
+                            <button onClick={() => { resetForm(); setShowForm(true); }} className="btn-primary flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 shadow-glow-indigo text-sm">
+                                <HiOutlinePlus className="w-4 h-4 sm:w-5 sm:h-5" /> New Entry
+                            </button>
+                        )}
+                    </div>
                 </div>
+
+                {/* Export Panel */}
+                {/* Export Configuration Panel */}
+                <AnimatePresence>
+                    {showExportPanel && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: 0.2 }}
+                            className="glass-card p-5 border border-emerald-100"
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-bold text-slate-800 text-base flex items-center gap-2">
+                                    <HiOutlineDocumentText className="w-5 h-5 text-emerald-600" />
+                                    Generate Labour Record Report
+                                </h3>
+                                <button onClick={() => setShowExportPanel(false)} className="text-slate-400 hover:text-slate-600">
+                                    <HiOutlineXMark className="w-5 h-5" />
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                {/* Period type */}
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Period Type</label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => setExportMode('monthly')}
+                                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${exportMode === 'monthly' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                        >Monthly</button>
+                                        <button
+                                            onClick={() => setExportMode('custom')}
+                                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition-colors ${exportMode === 'custom' ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                                        >Custom</button>
+                                    </div>
+                                </div>
+
+                                {/* Date range */}
+                                {exportMode === 'monthly' ? (
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Month</label>
+                                        <input
+                                            type="month"
+                                            value={exportMonth}
+                                            onChange={e => setExportMonth(e.target.value)}
+                                            className="input-field text-sm w-full"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">From</label>
+                                            <input type="date" value={exportStartDate} onChange={e => setExportStartDate(e.target.value)} className="input-field text-sm w-full" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">To</label>
+                                            <input type="date" value={exportEndDate} onChange={e => setExportEndDate(e.target.value)} min={exportStartDate} className="input-field text-sm w-full" />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Project filter */}
+                                <div>
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Project</label>
+                                    <select
+                                        value={exportProjectId}
+                                        onChange={e => setExportProjectId(e.target.value)}
+                                        className="input-field text-sm w-full"
+                                    >
+                                        <option value="">All Projects</option>
+                                        {projects.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}{p.client ? ` — ${p.client}` : ''}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                {/* Supervisor filter */}
+                                {!isSiteSupervisor && (
+                                    <div>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 block">Supervisor</label>
+                                        <select
+                                            value={exportSupervisorId}
+                                            onChange={e => setExportSupervisorId(e.target.value)}
+                                            className="input-field text-sm w-full"
+                                        >
+                                            <option value="">All Supervisors</option>
+                                            {allSupervisors.map(s => (
+                                                <option key={s.id} value={s.id}>{s.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex justify-end mt-4 pt-4 border-t border-slate-100">
+                                <button
+                                    onClick={handleGenerateReport}
+                                    disabled={exporting}
+                                    className="flex items-center gap-2 px-6 py-2.5 bg-emerald-500 text-white rounded-xl font-bold text-sm hover:bg-emerald-600 transition-colors disabled:opacity-60"
+                                >
+                                    {exporting
+                                        ? <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                                        : <HiOutlineDocumentText className="w-4 h-4" />
+                                    }
+                                    {exporting ? 'Loading...' : 'Generate PDF Report'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
+                {/* PDF Preview Modal */}
+                <AnimatePresence>
+                    {showReportPreview && reportData && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 bg-black/60 flex flex-col"
+                        >
+                            {/* Modal Toolbar */}
+                            <div className="flex items-center justify-between px-5 py-3 bg-slate-900 text-white flex-shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <HiOutlineDocumentText className="w-5 h-5 text-emerald-400" />
+                                    <div>
+                                        <div className="font-bold text-sm">Labour Manpower Report</div>
+                                        <div className="text-xs text-slate-400">{reportData.periodLabel}{reportData.projectName ? ` · ${reportData.projectName}` : ''}{reportData.supervisorName ? ` · ${reportData.supervisorName}` : ''}</div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-slate-400">{reportData.logs.length} entries</span>
+                                    <button
+                                        onClick={handlePrintReport}
+                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg font-bold text-sm hover:bg-emerald-600 transition-colors"
+                                    >
+                                        <HiOutlinePrinter className="w-4 h-4" /> Print / Save PDF
+                                    </button>
+                                    <button
+                                        onClick={() => setShowReportPreview(false)}
+                                        className="p-2 text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg transition-colors"
+                                    >
+                                        <HiOutlineXMark className="w-5 h-5" />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Document Preview */}
+                            <div className="flex-1 overflow-auto bg-slate-200 p-6">
+                                <div className="max-w-6xl mx-auto shadow-2xl">
+                                    <LabourReportDocument
+                                        logs={reportData.logs}
+                                        periodLabel={reportData.periodLabel}
+                                        projectName={reportData.projectName}
+                                        supervisorName={reportData.supervisorName}
+                                        generatedAt={new Date()}
+                                    />
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
                 {/* Filters */}
                 <div className="glass-card p-4 flex flex-wrap items-center gap-3">
@@ -570,9 +834,20 @@ export default function SiteLogsPage() {
                                                                 )}
                                                             </div>
                                                         </div>
-                                                        {filterDate && (
-                                                            <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1.5 rounded-lg">
-                                                                {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                        {filterDate ? (
+                                                            <div className="flex flex-col items-end">
+                                                                <span className="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-lg">
+                                                                    {new Date(log.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                                </span>
+                                                                <span className="text-[10px] font-bold text-slate-400 mt-1 flex items-center gap-1">
+                                                                    <HiOutlineClock className="w-3 h-3" />
+                                                                    {new Date(log.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                                                                </span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-[11px] font-bold text-slate-400 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg flex items-center gap-1.5">
+                                                                <HiOutlineClock className="w-3.5 h-3.5" />
+                                                                {new Date(log.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                                                             </span>
                                                         )}
                                                     </div>
@@ -634,22 +909,26 @@ export default function SiteLogsPage() {
                                                                     <HiOutlinePhoto className="w-3.5 h-3.5" /> Site Photos ({media.length})
                                                                 </p>
                                                                 <div className="flex gap-3 overflow-x-auto pb-2">
-                                                                    {media.map((url, i) => (
-                                                                        <div key={i} onClick={() => setPreviewMedia({ url, type: url.includes('video') || url.match(/\.(mp4|webm|ogg|mov)$/i) ? 'video' : 'image' })} className="relative w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-xl overflow-hidden border-2 border-slate-200 shadow-sm hover:border-indigo-400 transition-colors cursor-pointer group">
-                                                                            {url.includes('video') || url.match(/\.(mp4|webm|ogg|mov)$/i) ? (
-                                                                                <>
-                                                                                    <video src={url} className="w-full h-full object-cover" />
-                                                                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/30 transition-colors">
-                                                                                        <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center backdrop-blur-sm shadow-sm group-hover:scale-110 transition-transform">
-                                                                                            <div className="w-0 h-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-slate-800 ml-1" />
+                                                                    {media.map((url, i) => {
+                                                                        const viewUrl = url.startsWith('http') ? `/api/blob?url=${encodeURIComponent(url)}` : url;
+                                                                        const isVideo = url.includes('video') || url.match(/\.(mp4|webm|ogg|mov)$/i);
+                                                                        return (
+                                                                            <div key={i} onClick={() => setPreviewMedia({ url: viewUrl, type: isVideo ? 'video' : 'image' })} className="relative w-24 h-24 sm:w-32 sm:h-32 shrink-0 rounded-xl overflow-hidden border-2 border-slate-200 shadow-sm hover:border-indigo-400 transition-colors cursor-pointer group">
+                                                                                {isVideo ? (
+                                                                                    <>
+                                                                                        <video src={viewUrl} className="w-full h-full object-cover" />
+                                                                                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center group-hover:bg-black/30 transition-colors">
+                                                                                            <div className="w-8 h-8 rounded-full bg-white/90 flex items-center justify-center backdrop-blur-sm shadow-sm group-hover:scale-110 transition-transform">
+                                                                                                <div className="w-0 h-0 border-y-[5px] border-y-transparent border-l-[8px] border-l-slate-800 ml-1" />
+                                                                                            </div>
                                                                                         </div>
-                                                                                    </div>
-                                                                                </>
-                                                                            ) : (
-                                                                                <img src={url} alt={`Site photo ${i + 1}`} className="w-full h-full object-cover" />
-                                                                            )}
-                                                                        </div>
-                                                                    ))}
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <img src={viewUrl} alt={`Site photo ${i + 1}`} className="w-full h-full object-cover" />
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })}
                                                                 </div>
                                                             </div>
                                                         )}

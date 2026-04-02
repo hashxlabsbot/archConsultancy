@@ -127,7 +127,7 @@ export default function NewSiteVisitPage() {
         <div className="p-4 sm:p-6 max-w-2xl mx-auto">
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card p-5 sm:p-6">
                 <div className="mb-6 border-b border-gray-100 pb-4">
-                    <h1 className="text-xl font-bold text-slate-900">Log Field Visit</h1>
+                    <h1 className="text-xl font-bold text-slate-900">Log Project Site Visit</h1>
                     <p className="text-sm text-slate-500">Record a new site visit with GPS check-in and photos.</p>
                 </div>
 

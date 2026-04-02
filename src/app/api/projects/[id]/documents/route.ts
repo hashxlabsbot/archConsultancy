@@ -24,8 +24,8 @@ export async function POST(
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        if (file.size > 20 * 1024 * 1024) {
-            return NextResponse.json({ error: 'File too large (max 20MB)' }, { status: 400 });
+        if (file.size > 50 * 1024 * 1024) {
+            return NextResponse.json({ error: 'File too large (max 50MB)' }, { status: 400 });
         }
 
         const project = await prisma.project.findUnique({ where: { id: params.id } });
@@ -44,7 +44,7 @@ export async function POST(
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const blobPath = `projects/${params.id}/v${version}_${safeName}`;
         const blob = await put(blobPath, file, {
-            access: 'public',
+            access: 'private',
             contentType: file.type,
         });
 

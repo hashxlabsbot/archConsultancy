@@ -69,7 +69,7 @@ export default function SiteVisitsPage() {
         <div className="p-4 sm:p-6 max-w-[1600px] mx-auto">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div>
-                    <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>Field Visits & Compliance</h1>
+                    <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>Project Site Visits & Compliance</h1>
                     <p className="text-slate-500 text-sm mt-1">Track on-site activities with GPS verification and photo documentation.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
@@ -105,11 +105,11 @@ export default function SiteVisitsPage() {
                     <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6">
                         <HiOutlineMapPin className="w-10 h-10 text-slate-300" />
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-2">No Field Visits Found</h3>
+                    <h3 className="text-xl font-bold text-slate-900 mb-2">No Site Visits Found</h3>
                     <p className="text-slate-500 text-sm mb-8 leading-relaxed">
                         {selectedProjectId
                             ? "There are no visits logged for this specific project yet."
-                            : "Your field activity log is empty. Start tracking your site visits with GPS and photo proof."}
+                            : "Your Project Site activity log is empty. Start tracking your site visits with GPS and photo proof."}
                     </p>
                     <Link href="/site-visits/new" className="btn-primary inline-flex px-8">Log First Visit</Link>
                 </div>

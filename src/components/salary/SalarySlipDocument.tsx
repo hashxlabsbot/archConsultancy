@@ -117,8 +117,8 @@ const SalarySlipDocument: React.FC<SalarySlipProps> = ({ slip, employee }) => {
 
             {/* Header */}
             <div className="slip-header">
-                <div style={{ fontSize: '7.5pt', color: '#333' }}>
-                    <div style={{ fontSize: '11pt', fontWeight: 'bold' }}>🏢</div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <img src="/logo.png" alt="Arch Consultancy Logo" style={{ width: '45px', height: 'auto' }} />
                 </div>
                 <div>
                     <div className="company-name">Arch Consultancy</div>

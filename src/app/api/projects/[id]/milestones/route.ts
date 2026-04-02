@@ -15,10 +15,16 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
             include: {
                 assignee: { select: { id: true, name: true, avatar: true } },
                 reviewer: { select: { id: true, name: true, avatar: true } },
+                _count: { select: { comments: true } },
             }
         });
 
-        return NextResponse.json({ milestones });
+        const withMappedStatus = milestones.map(m => ({
+            ...m,
+            status: m.status === 'REVIEW' ? 'IN_PROGRESS' : m.status
+        }));
+
+        return NextResponse.json({ milestones: withMappedStatus });
     } catch (e) {
         console.error(e);
         return NextResponse.json({ error: 'Failed to fetch milestones' }, { status: 500 });

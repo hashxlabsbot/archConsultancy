@@ -19,9 +19,10 @@ export async function GET(
             where: { id: params.id },
             include: {
                 owner: { select: { id: true, name: true, email: true, role: true } },
+                projectManager: { select: { id: true, name: true, email: true, role: true, designation: true } },
                 members: {
                     include: {
-                        user: { select: { id: true, name: true, email: true, role: true } },
+                        user: { select: { id: true, name: true, email: true, role: true, designation: true } },
                     },
                 },
                 documents: {
@@ -70,12 +71,14 @@ export async function PATCH(
         if (data.contactPhone !== undefined) updateData.contactPhone = data.contactPhone;
         if (data.contactEmail !== undefined) updateData.contactEmail = data.contactEmail;
         if (data.status) updateData.status = data.status;
+        if (data.projectManagerId !== undefined) updateData.projectManagerId = data.projectManagerId || null;
 
         const project = await prisma.project.update({
             where: { id: params.id },
             data: updateData,
             include: {
                 owner: { select: { id: true, name: true, email: true } },
+                projectManager: { select: { id: true, name: true, email: true, designation: true } },
             },
         });
 

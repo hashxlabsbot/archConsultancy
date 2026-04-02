@@ -71,12 +71,15 @@ export async function POST(req: NextRequest) {
             contactName,
             contactPhone,
             contactEmail,
+            projectManagerId,
             status = 'RUNNING'
         } = await req.json();
 
         if (!name || !client || !startDate) {
             return NextResponse.json({ error: 'Name, client, and start date are required' }, { status: 400 });
         }
+
+        const creatorId = (session.user as any).id;
 
         const project = await prisma.project.create({
             data: {
@@ -92,12 +95,32 @@ export async function POST(req: NextRequest) {
                 contactPhone: contactPhone || null,
                 contactEmail: contactEmail || null,
                 status,
-                ownerId: (session.user as any).id,
+                ownerId: creatorId,
+                projectManagerId: projectManagerId || null,
             },
             include: {
                 owner: { select: { id: true, name: true, email: true } },
+                projectManager: { select: { id: true, name: true, email: true } },
             },
         });
+
+        // Auto-add Principal Architect (Surender Singh) to every new project
+        const principalArchitect = await prisma.user.findFirst({
+            where: { designation: 'Principal Architect' },
+            select: { id: true },
+        });
+        const membersToAdd: string[] = [];
+        if (principalArchitect) membersToAdd.push(principalArchitect.id);
+        // Also add the chosen PM if different from creator
+        if (projectManagerId && projectManagerId !== creatorId && projectManagerId !== principalArchitect?.id) {
+            membersToAdd.push(projectManagerId);
+        }
+        if (membersToAdd.length > 0) {
+            await prisma.projectMember.createMany({
+                data: membersToAdd.map(userId => ({ projectId: project.id, userId, role: 'MEMBER' })),
+                skipDuplicates: true,
+            });
+        }
 
         return NextResponse.json({ project }, { status: 201 });
     } catch (error) {

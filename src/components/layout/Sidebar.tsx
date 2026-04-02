@@ -33,7 +33,7 @@ const menuItems = [
     { path: '/attendance', label: 'Attendance', icon: HiOutlineClock, roles: [...REGULAR_ROLES] },
     // SITE_SUPERVISOR only sees this one item
     { path: '/site-logs', label: 'Daily Site Log', icon: HiOutlineWrenchScrewdriver, roles: ['ADMIN', 'SITE_SUPERVISOR', ...REGULAR_ROLES] },
-    { path: '/site-visits', label: 'Field Visits', icon: HiOutlineMapPin, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
+    { path: '/site-visits', label: 'Project Site Visits', icon: HiOutlineMapPin, roles: ['ADMIN', 'SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/reports', label: 'Daily Reports', icon: HiOutlineDocumentText, roles: ['SENIOR', 'JUNIOR', 'TRAINEE', 'INTERN', 'SITE_ENGINEER'] },
     { path: '/leaves', label: 'Leaves', icon: HiOutlineCalendarDays, roles: ['ADMIN', ...REGULAR_ROLES] },
     { path: '/admin/salary', label: 'Salary Setup', icon: HiOutlineCurrencyRupee, roles: ['ADMIN'] },

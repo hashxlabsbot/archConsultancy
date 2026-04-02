@@ -14,16 +14,22 @@ export async function POST(req: NextRequest) {
         }
 
         const formData = await req.formData();
+        console.log('[Upload] formData received');
         const file = formData.get('file') as File;
         const folder = (formData.get('folder') as string) || 'uploads';
 
         if (!file) {
+            console.error('[Upload] No file provided');
             return NextResponse.json({ error: 'No file provided' }, { status: 400 });
         }
 
-        // 10MB limit
-        if (file.size > 10 * 1024 * 1024) {
-            return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+        console.log('[Upload] file name:', file.name, 'size:', file.size, 'type:', file.type);
+        console.log('[Upload] folder:', folder);
+
+        // 50MB limit for architectural drawings
+        if (file.size > 50 * 1024 * 1024) {
+            console.error('[Upload] File too large');
+            return NextResponse.json({ error: 'File too large (max 50MB)' }, { status: 400 });
         }
 
         const userId = (session.user as any).id;
@@ -31,11 +37,14 @@ export async function POST(req: NextRequest) {
         const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const blobPath = `${folder}/${userId}/${timestamp}_${safeName}`;
 
+        console.log('[Upload] blobPath:', blobPath);
+
         const blob = await put(blobPath, file, {
-            access: 'public',
+            access: 'private',
             contentType: file.type,
         });
 
+        console.log('[Upload] success, url:', blob.url);
         return NextResponse.json({ url: blob.url }, { status: 201 });
     } catch (error: any) {
         console.error('[Upload] error:', error);
