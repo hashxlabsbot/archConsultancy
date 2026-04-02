@@ -88,3 +88,26 @@ export async function PATCH(
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
+
+// DELETE /api/projects/[id]
+export async function DELETE(
+    req: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user || !['ADMIN', 'SENIOR'].includes(session.user.role as string)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        }
+
+        // Delete the project (Prisma will cascade delete relations if configured, or just delete the project)
+        await prisma.project.delete({
+            where: { id: params.id },
+        });
+
+        return NextResponse.json({ success: true }, { status: 200 });
+    } catch (error) {
+        console.error('Project delete error:', error);
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}
