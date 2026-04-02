@@ -115,7 +115,7 @@ export default function ProjectsPage() {
                     <motion.form initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} onSubmit={handleCreate} className="glass-card p-6 space-y-4">
                         <h3 className="text-lg font-semibold text-slate-900">Create New Project</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div><label className="input-label">Project Name</label><input className="input-field" placeholder="Green Valley Residences" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
+                            <div><label className="input-label">Plot No. (Project Name)</label><input className="input-field" placeholder="e.g. Plot 42" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></div>
                             <div><label className="input-label">Client</label><input className="input-field" placeholder="Sunrise Developers" value={form.client} onChange={(e) => setForm({ ...form, client: e.target.value })} required /></div>
                             <div>
                                 <label className="input-label">Status</label>

@@ -669,8 +669,8 @@ export default function ProjectDetailPage() {
                             <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 mb-2">Project Name *</label>
-                                        <input required type="text" className="input-field" value={editData.name || ''} onChange={e => setEditData({ ...editData, name: e.target.value })} placeholder="Project Name" />
+                                        <label className="block text-sm font-bold text-slate-700 mb-2">Plot No. *</label>
+                                        <input required type="text" className="input-field" value={editData.name || ''} onChange={e => setEditData({ ...editData, name: e.target.value })} placeholder="e.g. Plot 42" />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-bold text-slate-700 mb-2">Client *</label>
