@@ -115,7 +115,7 @@ export default function ProfilePage() {
                         >
                             <div className="w-full h-full rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center text-3xl font-bold text-white border-2 border-white/30 shadow-lg overflow-hidden">
                                 {user.avatar ? (
-                                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                    <img src={`/api/blob?url=${encodeURIComponent(user.avatar)}`} alt={user.name} className="w-full h-full object-cover" />
                                 ) : (
                                     initials
                                 )}

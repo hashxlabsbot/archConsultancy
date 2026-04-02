@@ -255,7 +255,7 @@ export default function KanbanBoard({ projectId, members, onPreview }: { project
                                         <div className="flex items-center gap-2">
                                             <div className="w-5 h-5 rounded-md bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-500 overflow-hidden flex-shrink-0">
                                                 {m.assignee.avatar ? (
-                                                    <img src={m.assignee.avatar} alt={m.assignee.name} className="w-full h-full object-cover" />
+                                                    <img src={`/api/blob?url=${encodeURIComponent(m.assignee.avatar)}`} alt={m.assignee.name} className="w-full h-full object-cover" />
                                                 ) : (
                                                     getInitials(m.assignee.name)
                                                 )}
@@ -323,7 +323,7 @@ export default function KanbanBoard({ projectId, members, onPreview }: { project
                                             <span className="flex items-center gap-2">
                                                 <div className="w-5 h-5 rounded-md bg-slate-100 flex items-center justify-center text-[8px] font-bold text-slate-500 overflow-hidden flex-shrink-0">
                                                     {selectedCard.assignee.avatar ? (
-                                                        <img src={selectedCard.assignee.avatar} alt={selectedCard.assignee.name} className="w-full h-full object-cover" />
+                                                        <img src={`/api/blob?url=${encodeURIComponent(selectedCard.assignee.avatar)}`} alt={selectedCard.assignee.name} className="w-full h-full object-cover" />
                                                     ) : (
                                                         getInitials(selectedCard.assignee.name)
                                                     )}

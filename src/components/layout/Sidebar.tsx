@@ -148,7 +148,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
                         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-bold flex-shrink-0 overflow-hidden"
                             style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
                             {userAvatar ? (
-                                <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
+                                <img src={`/api/blob?url=${encodeURIComponent(userAvatar)}`} alt={userName} className="w-full h-full object-cover" />
                             ) : (
                                 initials
                             )}

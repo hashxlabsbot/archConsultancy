@@ -72,7 +72,7 @@ export default function EmployeesPage() {
                             <div className="flex items-start gap-4">
                                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-bold flex-shrink-0 overflow-hidden shadow-sm">
                                     {user.avatar ? (
-                                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                        <img src={`/api/blob?url=${encodeURIComponent(user.avatar)}`} alt={user.name} className="w-full h-full object-cover" />
                                     ) : (
                                         getInitials(user.name)
                                     )}
