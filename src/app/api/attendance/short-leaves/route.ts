@@ -76,9 +76,23 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'You can only request short leave for today or tomorrow.' }, { status: 400 });
         }
 
-        // Ensure requestDate is not on an existing leave day
         const requestDayStart = new Date(reqStr + "T00:00:00.000Z");
         const requestDayEnd = new Date(reqStr + "T23:59:59.999Z");
+
+        // Prevent duplicate short leave request for the same day
+        const existingShortLeave = await prisma.shortLeaveRequest.findFirst({
+            where: {
+                userId,
+                date: { gte: requestDayStart, lte: requestDayEnd },
+                status: { in: ['APPROVED', 'PENDING'] }
+            }
+        });
+
+        if (existingShortLeave) {
+            return NextResponse.json({ error: 'You already have a short leave request for this date.' }, { status: 409 });
+        }
+
+        // Ensure requestDate is not on an existing leave day
 
         const overlappingLeave = await prisma.leave.findFirst({
             where: {

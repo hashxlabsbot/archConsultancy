@@ -27,6 +27,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
             return NextResponse.json({ error: 'Request not found' }, { status: 404 });
         }
 
+        if (shortLeave.status !== 'PENDING') {
+            return NextResponse.json({ error: `Request already ${shortLeave.status.toLowerCase()}` }, { status: 409 });
+        }
+
         const updatedRequest = await prisma.shortLeaveRequest.update({
             where: { id: params.id },
             data: {

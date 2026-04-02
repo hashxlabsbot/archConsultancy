@@ -25,6 +25,14 @@ export async function PATCH(
             return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
         }
 
+        const existingLeave = await prisma.leave.findUnique({ where: { id: params.id } });
+        if (!existingLeave) {
+            return NextResponse.json({ error: 'Leave not found' }, { status: 404 });
+        }
+        if (existingLeave.status !== 'PENDING') {
+            return NextResponse.json({ error: `Leave already ${existingLeave.status.toLowerCase()}` }, { status: 409 });
+        }
+
         const leave = await prisma.leave.update({
             where: { id: params.id },
             data: {

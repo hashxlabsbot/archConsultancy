@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
         }
 
         const requests = await prisma.shortLeaveRequest.findMany({
+            where: { status: 'PENDING' },
             include: {
                 user: { select: { name: true, email: true, avatar: true } },
                 approvedBy: { select: { name: true } }
