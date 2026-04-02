@@ -64,7 +64,12 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
     const initials = userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
     // If role doesn't match any item (unknown/custom role), fall back to JUNIOR items so menu is never blank
-    let filteredMenu = menuItems.filter((item) => item.roles.includes(userRole));
+    let filteredMenu = menuItems.filter((item) => {
+        if (item.path === '/admin/leave-balances' && session?.user?.email?.toLowerCase() === 'poojakadyan101992@gmail.com') {
+            return true;
+        }
+        return item.roles.includes(userRole);
+    });
     if (filteredMenu.length === 0) {
         filteredMenu = menuItems.filter((item) => item.roles.includes('JUNIOR'));
     }

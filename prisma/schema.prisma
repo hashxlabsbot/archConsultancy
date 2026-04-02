@@ -4,131 +4,128 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DB_PRISMA_URL") // Connection pooling
-  directUrl = env("DB_URL_NON_POOLING") // Direct connection
+  url       = env("DB_PRISMA_URL")
+  directUrl = env("DB_URL_NON_POOLING")
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         String   @default("JUNIOR") // ADMIN, SENIOR, JUNIOR, TRAINEE, INTERN, SITE_SUPERVISOR, SITE_ENGINEER, NON_TECHNICAL
-  phone        String?
-  skills       String?
-  avatar       String?
-  // Profile Details
-  designation  String?
-  fathersName  String?
-  joiningDate  DateTime?
-  panCard          String?
-  aadharNo         String?
-  leaveAdjustment  Int      @default(0) // manually added pre-consumed leaves (for mid-year onboarding)
-  createdAt        DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  attendances              Attendance[]
-  reports                  Report[]
-  leaves                   Leave[]
-  ownedProjects            Project[]              @relation("ProjectOwner")
-  managedProjects          Project[]              @relation("ProjectManager")
-  projectMembers           ProjectMember[]
-  milestoneComments        MilestoneComment[]
-  documents                Document[]
-  signedReports            Report[]               @relation("ReportSignOff")
-  approvedLeaves           Leave[]                @relation("LeaveApprover")
-  notifications            Notification[]
-  siteVisits               SiteVisit[]
-  salarySlips              SalarySlip[]
-  assignedMilestones       Milestone[]            @relation("MilestoneAssignee")
-  reviewedMilestones       Milestone[]            @relation("MilestoneReviewer")
-  shortLeaves              ShortLeaveRequest[]    @relation("UserShortLeaves")
-  approvedShortLeaves      ShortLeaveRequest[]    @relation("ApprovedShortLeaves")
-  salaryStructure          SalaryStructure?
-  dailySiteLogs            DailySiteLog[]
-  employeeOfMonthAwards    EmployeeOfTheMonth[]   @relation("EOMWinner")
-  employeeOfMonthGranted   EmployeeOfTheMonth[]   @relation("EOMGrantedBy")
-  notices                  Notice[]               @relation("NoticeAuthor")
-  noticeReads              NoticeRead[]
+  id                     String               @id @default(cuid())
+  name                   String
+  email                  String               @unique
+  passwordHash           String
+  role                   String               @default("JUNIOR")
+  phone                  String?
+  skills                 String?
+  avatar                 String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  aadharNo               String?
+  designation            String?
+  fathersName            String?
+  joiningDate            DateTime?
+  panCard                String?
+  leaveAdjustment        Int                  @default(0)
+  attendances            Attendance[]
+  dailySiteLogs          DailySiteLog[]
+  documents              Document[]
+  employeeOfMonthGranted EmployeeOfTheMonth[] @relation("EOMGrantedBy")
+  employeeOfMonthAwards  EmployeeOfTheMonth[] @relation("EOMWinner")
+  approvedLeaves         Leave[]              @relation("LeaveApprover")
+  leaves                 Leave[]
+  assignedMilestones     Milestone[]          @relation("MilestoneAssignee")
+  reviewedMilestones     Milestone[]          @relation("MilestoneReviewer")
+  milestoneComments      MilestoneComment[]
+  notices                Notice[]             @relation("NoticeAuthor")
+  noticeReads            NoticeRead[]
+  notifications          Notification[]
+  ownedProjects          Project[]            @relation("ProjectOwner")
+  managedProjects        Project[]            @relation("ProjectManager")
+  projectMembers         ProjectMember[]
+  signedReports          Report[]             @relation("ReportSignOff")
+  reports                Report[]
+  salarySlips            SalarySlip[]
+  salaryStructure        SalaryStructure?
+  approvedShortLeaves    ShortLeaveRequest[]  @relation("ApprovedShortLeaves")
+  shortLeaves            ShortLeaveRequest[]  @relation("UserShortLeaves")
+  siteVisits             SiteVisit[]
 }
 
 model EmployeeOfTheMonth {
   id          String   @id @default(cuid())
   userId      String
-  user        User     @relation("EOMWinner", fields: [userId], references: [id])
-  month       Int      // 1-12
+  month       Int
   year        Int
   reason      String?
   grantedById String
-  grantedBy   User     @relation("EOMGrantedBy", fields: [grantedById], references: [id])
   createdAt   DateTime @default(now())
+  grantedBy   User     @relation("EOMGrantedBy", fields: [grantedById], references: [id])
+  user        User     @relation("EOMWinner", fields: [userId], references: [id])
 
   @@unique([month, year])
 }
 
 model Attendance {
-  id               String    @id @default(cuid())
-  userId           String
-  user             User      @relation(fields: [userId], references: [id])
-  date             DateTime  @default(now())
-  checkIn          DateTime  @default(now())
-  checkOut         DateTime?
-  latitude         Float?
-  longitude        Float?
-  address          String?
+  id                String    @id @default(cuid())
+  userId            String
+  date              DateTime  @default(now())
+  checkIn           DateTime  @default(now())
+  checkOut          DateTime?
+  reportSubmitted   Boolean   @default(false)
+  checkoutAttempts  Int       @default(0)
+  createdAt         DateTime  @default(now())
+  address           String?
+  latitude          Float?
+  longitude         Float?
+  checkOutAddress   String?
   checkOutLatitude  Float?
   checkOutLongitude Float?
-  checkOutAddress   String?
-  reportSubmitted  Boolean   @default(false)
-  checkoutAttempts Int       @default(0)
-  createdAt        DateTime  @default(now())
-
-  reports Report[]
+  user              User      @relation(fields: [userId], references: [id])
+  reports           Report[]
 }
 
 model Report {
   id             String     @id @default(cuid())
   attendanceId   String
-  attendance     Attendance @relation(fields: [attendanceId], references: [id])
   userId         String
-  user           User       @relation(fields: [userId], references: [id])
-  projectId      String? // New: Optional linking to a Project
-  project        Project?   @relation(fields: [projectId], references: [id])
+  projectId      String?
   tasks          String
   blockers       String?
   nextPlan       String?
-  imageUrl       String? // New: Optional image upload (base64 or path)
+  imageUrl       String?
   submittedAt    DateTime   @default(now())
   managerComment String?
   signedOffBy    String?
-  signedOffUser  User?      @relation("ReportSignOff", fields: [signedOffBy], references: [id])
   createdAt      DateTime   @default(now())
+  attendance     Attendance @relation(fields: [attendanceId], references: [id])
+  project        Project?   @relation(fields: [projectId], references: [id])
+  signedOffUser  User?      @relation("ReportSignOff", fields: [signedOffBy], references: [id])
+  user           User       @relation(fields: [userId], references: [id])
 }
 
 model Leave {
   id         String   @id @default(cuid())
   userId     String
-  user       User     @relation(fields: [userId], references: [id])
-  type       String   @default("FULL") // FULL, HALF, CUSTOM
+  type       String   @default("FULL")
   startDate  DateTime
   endDate    DateTime
   reason     String
-  status     String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  status     String   @default("PENDING")
   approvedBy String?
-  approver   User?    @relation("LeaveApprover", fields: [approvedBy], references: [id])
   comment    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  approver   User?    @relation("LeaveApprover", fields: [approvedBy], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 }
 
 model Project {
-  id               String    @id @default(cuid())
+  id               String          @id @default(cuid())
   name             String
   client           String
   startDate        DateTime
   endDate          DateTime?
   description      String?
-  status           String    @default("ACTIVE") // ACTIVE, COMPLETED, ON_HOLD
+  status           String          @default("ACTIVE")
   location         String?
   latitude         Float?
   longitude        Float?
@@ -136,27 +133,26 @@ model Project {
   contactPhone     String?
   contactEmail     String?
   ownerId          String
-  owner            User      @relation("ProjectOwner", fields: [ownerId], references: [id])
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   projectManagerId String?
-  projectManager   User?     @relation("ProjectManager", fields: [projectManagerId], references: [id])
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  members       ProjectMember[]
-  documents     Document[]
-  reports       Report[]
-  siteVisits    SiteVisit[]
-  milestones    Milestone[]
-  dailySiteLogs DailySiteLog[]
+  dailySiteLogs    DailySiteLog[]
+  documents        Document[]
+  milestones       Milestone[]
+  owner            User            @relation("ProjectOwner", fields: [ownerId], references: [id])
+  projectManager   User?           @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  members          ProjectMember[]
+  reports          Report[]
+  siteVisits       SiteVisit[]
 }
 
 model ProjectMember {
   id        String  @id @default(cuid())
   projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   userId    String
+  role      String  @default("MEMBER")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user      User    @relation(fields: [userId], references: [id])
-  role      String  @default("MEMBER") // LEAD, MEMBER
 
   @@unique([projectId, userId])
 }
@@ -164,143 +160,132 @@ model ProjectMember {
 model Document {
   id          String   @id @default(cuid())
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   filename    String
   storagePath String
   version     Int      @default(1)
   uploadedBy  String
-  uploader    User     @relation(fields: [uploadedBy], references: [id])
-  tags        String? // JSON stringified array
+  tags        String?
   mimeType    String?
   size        Int?
   createdAt   DateTime @default(now())
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  uploader    User     @relation(fields: [uploadedBy], references: [id])
 }
 
 model Notification {
   id        String   @id @default(cuid())
-  userId    String // Admin who receives it
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
   title     String
   message   String
   isRead    Boolean  @default(false)
   link      String?
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SiteVisit {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   projectId String
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   date      DateTime @default(now())
   latitude  Float?
   longitude Float?
   address   String?
-  purpose   String?  @default("Site Visit") // Survey, Meeting, Inspection, Audit
   notes     String
-  photoUrls String? // JSON stringified array of base64 strings
-  status    String   @default("PENDING") // PENDING, REVIEWED
+  photoUrls String?
+  status    String   @default("PENDING")
   createdAt DateTime @default(now())
+  purpose   String?  @default("Site Visit")
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model Milestone {
-  id                String             @id @default(cuid())
-  projectId         String
-  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  title             String
-  description       String?
-  status            String             @default("TODO") // TODO, IN_PROGRESS, REVIEW, DONE
-  sequence          Int                @default(0)
-  dueDate           DateTime?
-  assigneeId        String?
-  assignee          User?              @relation("MilestoneAssignee", fields: [assigneeId], references: [id])
-  reviewerId        String?
-  reviewer          User?              @relation("MilestoneReviewer", fields: [reviewerId], references: [id])
-  deliverableUrl    String?
-  deliverableType   String?
-  deliverableName   String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  comments          MilestoneComment[]
+  id              String             @id @default(cuid())
+  projectId       String
+  title           String
+  description     String?
+  status          String             @default("TODO")
+  sequence        Int                @default(0)
+  dueDate         DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  assigneeId      String?
+  reviewerId      String?
+  deliverableName String?
+  deliverableType String?
+  deliverableUrl  String?
+  assignee        User?              @relation("MilestoneAssignee", fields: [assigneeId], references: [id])
+  project         Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviewer        User?              @relation("MilestoneReviewer", fields: [reviewerId], references: [id])
+  comments        MilestoneComment[]
 }
 
 model MilestoneComment {
   id          String    @id @default(cuid())
   milestoneId String
-  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
   userId      String
-  user        User      @relation(fields: [userId], references: [id])
   content     String
   createdAt   DateTime  @default(now())
+  milestone   Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
 }
-
 
 model ShortLeaveRequest {
   id             String   @id @default(cuid())
   userId         String
-  user           User     @relation("UserShortLeaves", fields: [userId], references: [id], onDelete: Cascade)
   date           DateTime
   hoursRequested Float
   reason         String
-  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  status         String   @default("PENDING")
   approvedById   String?
-  approvedBy     User?    @relation("ApprovedShortLeaves", fields: [approvedById], references: [id])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  approvedBy     User?    @relation("ApprovedShortLeaves", fields: [approvedById], references: [id])
+  user           User     @relation("UserShortLeaves", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SalaryStructure {
-  id                  String   @id @default(cuid())
-  userId              String   @unique
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  basicSalary         Float    @default(0)
-  hraRate             Float    @default(50) // Percentage of basic
-  daRate              Float    @default(10) // Percentage of basic
-  
-  medicalAllowance    Float    @default(0)
-  mobileAllowance     Float    @default(0)
-  travelAllowance     Float    @default(0)
-  seniorityAllowance  Float    @default(0)
-  
-  annualIncentiveRate Float    @default(5) // Percentage of basic
-  annualIncentiveMonth String? // e.g. "January"
-  
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  basicSalary          Float    @default(0)
+  hraRate              Float    @default(50)
+  daRate               Float    @default(10)
+  medicalAllowance     Float    @default(0)
+  mobileAllowance      Float    @default(0)
+  travelAllowance      Float    @default(0)
+  seniorityAllowance   Float    @default(0)
+  annualIncentiveRate  Float    @default(5)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  annualIncentiveMonth String?
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SalarySlip {
-  id                  String   @id @default(cuid())
-  userId              String
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  month               String   // e.g. "October"
-  year                Int      // e.g. 2025
-  
-  allowedLeaves       Float    @default(0)
-  balanceLeaves       Float    @default(0)
-  excessLeaves        Float    @default(0)
-  
-  basicSalary         Float
-  houseRentAllowance  Float
-  dearnessAllowance   Float
-  medicalAllowance    Float
-  mobileAllowance     Float
-  travelAllowance     Float
-  seniorityAllowance  Float
-  leaveAllowance      Float    @default(0)
-  annualIncentive     Float    @default(0)
-  advanceDeduction    Float    @default(0)
-  
-  grossSalary         Float
-  
-  status              String   @default("GENERATED") // GENERATED, PAID
-  
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  
+  id                 String   @id @default(cuid())
+  userId             String
+  status             String   @default("GENERATED")
+  createdAt          DateTime @default(now())
+  advanceDeduction   Float    @default(0)
+  allowedLeaves      Float    @default(0)
+  annualIncentive    Float    @default(0)
+  balanceLeaves      Float    @default(0)
+  basicSalary        Float
+  dearnessAllowance  Float
+  excessLeaves       Float    @default(0)
+  grossSalary        Float
+  houseRentAllowance Float
+  leaveAllowance     Float    @default(0)
+  medicalAllowance   Float
+  mobileAllowance    Float
+  month              String
+  seniorityAllowance Float
+  travelAllowance    Float
+  updatedAt          DateTime @updatedAt
+  year               Int
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, month, year])
 }
 
@@ -308,22 +293,22 @@ model Notice {
   id           String       @id @default(cuid())
   title        String
   message      String
-  priority     String       @default("NORMAL") // NORMAL, URGENT, INFO
+  priority     String       @default("NORMAL")
   postedById   String
-  postedBy     User         @relation("NoticeAuthor", fields: [postedById], references: [id])
   whatsappSent Boolean      @default(false)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
+  postedBy     User         @relation("NoticeAuthor", fields: [postedById], references: [id])
   reads        NoticeRead[]
 }
 
 model NoticeRead {
-  id        String   @id @default(cuid())
-  noticeId  String
-  notice    Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  readAt    DateTime @default(now())
+  id       String   @id @default(cuid())
+  noticeId String
+  userId   String
+  readAt   DateTime @default(now())
+  notice   Notice   @relation(fields: [noticeId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([noticeId, userId])
 }
@@ -331,22 +316,22 @@ model NoticeRead {
 model DailySiteLog {
   id          String   @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   projectId   String
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   date        DateTime @db.Date
-  masonCount  Int      @default(0)
-  coolieCount Int      @default(0)
-  helperCount Int      @default(0)
-  otherCount  Int      @default(0)
   notes       String?
-  audioUrl    String?
-  mediaUrls   String?  // JSON array of base64 image/video strings
-  latitude    Float?
-  longitude   Float?
-  address     String?
+  mediaUrls   String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  coolieCount Int      @default(0)
+  helperCount Int      @default(0)
+  masonCount  Int      @default(0)
+  otherCount  Int      @default(0)
+  audioUrl    String?
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId, date])
 }
