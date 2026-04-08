@@ -67,6 +67,7 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
     const isPoojaKadyan = session?.user?.email?.toLowerCase() === 'poojakadyan101992@gmail.com';
     let filteredMenu = menuItems.filter((item) => {
         if (isPoojaKadyan && (item.path === '/admin/leave-balances' || item.path === '/admin')) {
+
             return true;
         }
         return item.roles.includes(userRole);

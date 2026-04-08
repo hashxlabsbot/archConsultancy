@@ -14,10 +14,10 @@ export async function GET(req: NextRequest) {
         }
 
         const userId = (session.user as any).id;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+        const nowIST = Date.now() + IST_OFFSET_MS;
+        const today = new Date(nowIST - (nowIST % (24 * 60 * 60 * 1000)) - IST_OFFSET_MS);
+        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
         const attendance = await prisma.attendance.findFirst({
             where: {

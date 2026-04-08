@@ -15,10 +15,12 @@ export async function GET() {
 
         const userId = (session.user as any).id;
         const role = (session.user as any).role;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        // Use IST (UTC+5:30) midnight to avoid timezone boundary issues
+        const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+        const nowIST = Date.now() + IST_OFFSET_MS;
+        const todayISTMs = nowIST - (nowIST % (24 * 60 * 60 * 1000));
+        const today = new Date(todayISTMs - IST_OFFSET_MS);
+        const tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
         // Common stats
         const [totalEmployees, runningProjects, completedProjects, todayAttendance, pendingLeaves] = await Promise.all([
@@ -45,9 +47,9 @@ export async function GET() {
         let myAttendance = null;
         let myLeaveBalance = null;
 
-        if (role !== 'ADMIN' && role !== 'SENIOR') {
+        if (role !== 'ADMIN') {
             myAttendance = await prisma.attendance.findFirst({
-                where: { userId, date: { gte: today } },
+                where: { userId, date: { gte: today, lt: tomorrow } },
                 include: { reports: true },
             });
 
