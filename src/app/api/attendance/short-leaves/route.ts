@@ -12,25 +12,20 @@ export async function GET(req: NextRequest) {
         }
 
         const userId = session.user.id;
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
         const requests = await prisma.shortLeaveRequest.findMany({
-            where: {
-                userId,
-                date: {
-                    gte: startOfMonth,
-                    lte: endOfMonth
-                }
-            },
+            where: { userId },
             orderBy: { date: 'desc' }
         });
 
-        // Calculate hours used/pending this month
+        // Calculate hours used/pending this month only (for quota display)
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
         let usedHours = 0;
         requests.forEach((req: any) => {
-            if (req.status === 'APPROVED' || req.status === 'PENDING') {
+            const reqDate = new Date(req.date);
+            if ((req.status === 'APPROVED' || req.status === 'PENDING') && reqDate >= startOfMonth && reqDate <= endOfMonth) {
                 usedHours += req.hoursRequested;
             }
         });

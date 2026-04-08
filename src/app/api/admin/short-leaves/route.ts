@@ -7,7 +7,8 @@ import { authOptions } from '@/lib/auth';
 export async function GET(req: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
-        if (!session?.user?.id || (session.user as any).role !== 'ADMIN') {
+        const role = (session?.user as any)?.role;
+        if (!session?.user?.id || (role !== 'ADMIN' && role !== 'SENIOR')) {
             return NextResponse.json({ error: 'Unauthorized. Admin access required.' }, { status: 403 });
         }
 
