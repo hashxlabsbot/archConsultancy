@@ -64,8 +64,9 @@ export default function Sidebar({ isMobileOpen, setIsMobileOpen }: SidebarProps)
     const initials = userName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase();
 
     // If role doesn't match any item (unknown/custom role), fall back to JUNIOR items so menu is never blank
+    const isPoojaKadyan = session?.user?.email?.toLowerCase() === 'poojakadyan101992@gmail.com';
     let filteredMenu = menuItems.filter((item) => {
-        if (item.path === '/admin/leave-balances' && session?.user?.email?.toLowerCase() === 'poojakadyan101992@gmail.com') {
+        if (isPoojaKadyan && (item.path === '/admin/leave-balances' || item.path === '/admin')) {
             return true;
         }
         return item.roles.includes(userRole);

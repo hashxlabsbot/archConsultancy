@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HiOutlineCog6Tooth, HiOutlineUsers, HiOutlineShieldCheck, HiPencil, HiTrash, HiXMark } from 'react-icons/hi2';
@@ -8,6 +9,8 @@ import { getInitials, getRoleBadgeColor } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
 export default function AdminPage() {
+    const { data: session } = useSession();
+    const isAdmin = (session?.user as any)?.role === 'ADMIN';
     const [users, setUsers] = useState<any[]>([]);
     const [, setLoadingUsers] = useState(true);
 
@@ -221,9 +224,11 @@ export default function AdminPage() {
                                                 <button onClick={() => openEditModal(user)} className="p-1.5 text-slate-400 hover:text-primary-500 hover:bg-primary-50 rounded-lg transition-colors border border-transparent hover:border-primary-100" title="Edit User & Password">
                                                     <HiPencil className="w-4 h-4" />
                                                 </button>
-                                                <button onClick={() => handleDelete(user.id)} className="p-1.5 text-slate-400 hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors border border-transparent hover:border-danger-100" title="Delete User">
-                                                    <HiTrash className="w-4 h-4" />
-                                                </button>
+                                                {isAdmin && (
+                                                    <button onClick={() => handleDelete(user.id)} className="p-1.5 text-slate-400 hover:text-danger-500 hover:bg-danger-50 rounded-lg transition-colors border border-transparent hover:border-danger-100" title="Delete User">
+                                                        <HiTrash className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
