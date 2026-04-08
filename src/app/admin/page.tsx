@@ -242,15 +242,15 @@ export default function AdminPage() {
             {/* User Config Modal */}
             <AnimatePresence>
                 {isUserModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-slate-900/40 backdrop-blur-sm">
-                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-white rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl border border-gray-100">
-                            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-slate-50/50">
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4 bg-slate-900/40 backdrop-blur-sm">
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 10 }} className="bg-white rounded-2xl w-full max-w-lg flex flex-col shadow-2xl border border-gray-100 max-h-[calc(100dvh-6rem)] md:max-h-[90vh]">
+                            <div className="p-6 border-b border-gray-100 flex items-center justify-between bg-slate-50/50 flex-shrink-0">
                                 <h3 className="text-lg font-bold text-slate-900">{modalMode === 'add' ? 'Add New User' : 'Edit User & Permissions'}</h3>
                                 <button onClick={() => setIsUserModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-100 rounded-lg">
                                     <HiXMark className="w-5 h-5" />
                                 </button>
                             </div>
-                            <form onSubmit={handleUserSubmit} className="p-6 space-y-4">
+                            <form onSubmit={handleUserSubmit} className="p-6 space-y-4 overflow-y-auto">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="input-label">Full Name *</label>
