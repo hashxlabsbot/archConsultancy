@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { HiOutlineDocumentText, HiOutlinePlus, HiOutlineChatBubbleLeft } from 'react-icons/hi2';
+import { HiOutlineDocumentText, HiOutlinePlus, HiOutlineChatBubbleLeft, HiOutlineMagnifyingGlass } from 'react-icons/hi2';
 import { formatDate, formatTime } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -14,6 +14,7 @@ export default function ReportsPage() {
     const [reports, setReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [commentModal, setCommentModal] = useState<{ id: string; open: boolean; comment: string }>({ id: '', open: false, comment: '' });
+    const [nameFilter, setNameFilter] = useState('');
     const role = (session?.user as any)?.role;
 
     useEffect(() => { fetchReports(); }, []);
@@ -57,7 +58,19 @@ export default function ReportsPage() {
                 </div>
 
                 <div className="space-y-4">
-                    {reports.map((report) => (
+                    {(role === 'ADMIN' || role === 'SENIOR') && (
+                        <div className="relative">
+                            <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                            <input
+                                type="text"
+                                placeholder="Filter by employee name..."
+                                value={nameFilter}
+                                onChange={(e) => setNameFilter(e.target.value)}
+                                className="input-field pl-9"
+                            />
+                        </div>
+                    )}
+                    {reports.filter((r) => !nameFilter || r.user?.name?.toLowerCase().includes(nameFilter.toLowerCase())).map((report) => (
                         <motion.div key={report.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-5">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-3">
@@ -106,7 +119,7 @@ export default function ReportsPage() {
                             </div>
                         </motion.div>
                     ))}
-                    {reports.length === 0 && !loading && (
+                    {reports.filter((r) => !nameFilter || r.user?.name?.toLowerCase().includes(nameFilter.toLowerCase())).length === 0 && !loading && (
                         <div className="text-center py-12">
                             <HiOutlineDocumentText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
                             <p className="text-slate-500">No reports yet</p>
